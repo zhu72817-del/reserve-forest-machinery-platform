@@ -100,28 +100,9 @@
         </div>
       </section>
 
-      <section class="core-entry">
-        <article>
-          <h2>内采商城</h2>
-          <p>严格展示宣传册产品：森林防火装备 9 款、车辆装备 7 款，支持购买、租赁和询价。</p>
-          <button data-public-view="mall">进入内采商城</button>
-        </article>
-        <article>
-          <h2>机械设备库</h2>
-          <p>挖掘机、装载机、运输车、轨道式集材系统、大型运输无人机等，可购买可租赁。</p>
-          <button data-public-view="equipment">查看机械设备库</button>
-        </article>
-        <article>
-          <h2>机械服务库</h2>
-          <p>林地整理、机械化造林、林木抚育、采伐运输、无人机巡查等工程服务。</p>
-          <button data-public-view="service">查找机械服务库</button>
-        </article>
-      </section>
-
       <section class="portal-section" id="internalMall">
         <div class="section-head">
-          <h2>推荐内采商品</h2>
-          <span>只展示宣传册产品：森林防火装备 9 款、车辆装备 7 款</span>
+          <h2>内采商品</h2>
         </div>
         <div class="portal-cards" id="portalItems"></div>
       </section>
@@ -182,10 +163,10 @@
         <div class="module-layout">
           <aside class="module-side">
             <h3>商品分类</h3>
-            <button>森林防火装备</button><button>车辆装备</button>
+            <button class="active" data-mall-filter="森林防火装备">森林防火装备</button><button data-mall-filter="车辆装备">车辆装备</button>
           </aside>
           <main>
-            <div class="module-toolbar"><input type="search" placeholder="搜索宣传册产品、型号、供应商" /><button class="primary-button" data-open-login="buyer">发起询价</button></div>
+            <div class="module-toolbar"><input type="search" placeholder="搜索宣传册产品、型号、供应商" /><button class="primary-button" data-open-login="buyer">提交采购申请</button></div>
             <div class="module-stack" id="mallModuleList"></div>
           </main>
         </div>
@@ -358,14 +339,30 @@
             <div class="cards" id="itemCards"></div>
           </section>
 
+          <section class="view-panel hidden" id="equipmentView">
+            <div class="section-head">
+              <h2>机械设备库</h2>
+              <span>储备林建设与林业作业设备，可购买、租赁或形成项目需求</span>
+            </div>
+            <div class="cards" id="equipmentCards"></div>
+          </section>
+
+          <section class="view-panel hidden" id="serviceDeskView">
+            <div class="section-head">
+              <h2>机械设备服务库</h2>
+              <span>按小时、台班、亩数或项目计价的工程服务</span>
+            </div>
+            <div class="cards" id="serviceDeskCards"></div>
+          </section>
+
           <section class="view-panel hidden" id="demandView">
             <div class="section-head">
-              <h2>采购需求</h2>
-              <span id="demandDesc">需求发布后自动匹配上架目录</span>
+              <h2 id="demandTitle">我的项目</h2>
+              <span id="demandDesc">展示本单位申请项目的批复、匹配和执行状态</span>
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>需求</th><th>地区</th><th>方式</th><th>预算</th><th>匹配结果</th><th>状态</th><th>操作</th></tr></thead>
+                <thead><tr><th>项目</th><th>地区</th><th>采购方式</th><th>预算</th><th>批复/匹配</th><th>执行状态</th><th>操作</th></tr></thead>
                 <tbody id="demandRows"></tbody>
               </table>
             </div>

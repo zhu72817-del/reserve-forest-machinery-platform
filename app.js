@@ -9,7 +9,7 @@ const state = {
   view: "home",
 };
 
-const views = ["home", "mall", "demand", "quote", "order", "admin", "log"];
+const views = ["home", "mall", "equipment", "serviceDesk", "demand", "quote", "order", "admin", "log"];
 const roleTitle = {
   buyer: ["需求方工作台", "提需求、选服务、下订单、做验收"],
   supplier: ["供应商工作台", "上架资源、响应报价、推进履约"],
@@ -18,8 +18,7 @@ const roleTitle = {
 const roleMenus = {
   buyer: [
     ["工作台", [["home", "首页"], ["log", "操作记录"]]],
-    ["采购业务", [["demand", "我的采购需求"], ["quote", "报价比选"], ["order", "订单与验收"]]],
-    ["资源浏览", [["mall", "可选资源目录"]]],
+    ["采购业务", [["mall", "内采商城"], ["equipment", "机械设备库"], ["serviceDesk", "机械设备服务库"], ["demand", "我的项目"], ["order", "订单与验收"]]],
   ],
   supplier: [
     ["工作台", [["home", "首页"], ["log", "操作记录"]]],
@@ -33,9 +32,9 @@ const roleMenus = {
 };
 const roleGuide = {
   buyer: [
-    ["发布采购需求", "填写项目地区、类别、预算和采购方式。"],
-    ["查看匹配资源", "平台从已上架目录中推荐供应商和服务。"],
-    ["比选报价", "查看供应商响应报价，确认采购方案。"],
+    ["进入内采商城", "查看宣传册产品，选择商品后发起购买申请。"],
+    ["查看设备服务", "按设备库和服务库查找项目所需资源。"],
+    ["我的项目", "查看项目是否批复、是否匹配和执行进度。"],
     ["订单验收", "生成订单后跟进合同、履约和验收。"],
   ],
   supplier: [
@@ -52,7 +51,7 @@ const roleGuide = {
   ],
 };
 const roleProcess = {
-  buyer: ["编制需求", "选择采购方式", "比选报价", "生成订单", "验收评价"],
+  buyer: ["选择资源", "提交申请", "项目批复", "订单执行", "验收评价"],
   supplier: ["维护资源", "等待审核", "响应报价", "合同履约", "售后服务"],
   admin: ["供应商准入", "目录审核", "需求监管", "订单监管", "归档留痕"],
 };
@@ -93,7 +92,10 @@ function renderPublic() {
     ["服务项目", data.stats.services],
   ];
   document.querySelector("#portalStats").innerHTML = stats.map(([label, value]) => `<div class="portal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
-  document.querySelector("#portalItems").innerHTML = data.items.slice(0, 8).map((item) => `
+  const recommended = ["森林防火服 XGF01", "油锯 XGJ-66", "风力灭火机 XG25-F", "坦克300森林防火指挥车基型车"]
+    .map((name) => data.items.find((item) => item.name === name))
+    .filter(Boolean);
+  document.querySelector("#portalItems").innerHTML = recommended.map((item) => `
     <article class="portal-card">
       ${productImage(item)}
       <h3>${item.name}</h3>
@@ -101,7 +103,7 @@ function renderPublic() {
       <p>${item.description}</p>
       ${item.model ? `<span class="spec-line">型号：${item.model}</span>` : ""}
       <b class="price">${item.price}</b>
-      <div class="card-actions"><button class="mini-button" data-public-view="mall">查看详情</button><button class="mini-button" data-open-login="buyer">询价</button></div>
+      <div class="card-actions"><button class="mini-button" data-public-view="mall">查看详情</button><button class="mini-button" data-open-login="buyer">立即购买</button></div>
     </article>
   `).join("");
   document.querySelector("#portalEquipment").innerHTML = data.equipment.map((item) => `
@@ -148,7 +150,7 @@ function renderPublic() {
 }
 
 function renderPublicModules(data) {
-  document.querySelector("#mallModuleList").innerHTML = renderMallGroups(data.items);
+  renderMallCategory(currentMallCategory, data.items);
   document.querySelector("#equipmentModuleList").innerHTML = data.equipment.map((item) => renderModuleCard(item, "equipment")).join("");
   document.querySelector("#serviceModuleList").innerHTML = data.services.map((item) => renderModuleCard(item, "service")).join("");
   document.querySelector("#demandModuleList").innerHTML = data.demands.map((item) => `
@@ -169,23 +171,25 @@ function renderPublicModules(data) {
   `).join("");
 }
 
-function renderMallGroups(items) {
-  const groups = [
-    ["森林防火装备", "宣传册防火设备 9 款", items.filter((item) => item.category === "森林防火装备")],
-    ["车辆装备", "宣传册车辆产品 7 款", items.filter((item) => item.category === "车辆装备")],
-  ];
-  return groups.map(([title, desc, groupItems]) => `
+let currentMallCategory = "森林防火装备";
+
+function renderMallCategory(category = "森林防火装备", sourceItems = state.public?.items || []) {
+  currentMallCategory = category;
+  document.querySelectorAll("[data-mall-filter]").forEach((button) => button.classList.toggle("active", button.dataset.mallFilter === category));
+  const groupItems = sourceItems.filter((item) => item.category === category);
+  const desc = category === "森林防火装备" ? "宣传册防火设备 9 款" : "宣传册车辆产品 7 款";
+  document.querySelector("#mallModuleList").innerHTML = `
     <section class="mall-group">
       <div class="mall-group-head">
         <div>
-          <h2>${title}</h2>
+          <h2>${category}</h2>
           <p>${desc}</p>
         </div>
         <span>${groupItems.length} 个产品</span>
       </div>
       <div class="module-grid">${groupItems.map((item) => renderModuleCard(item, "mall")).join("")}</div>
     </section>
-  `).join("");
+  `;
 }
 
 function productImage(item) {
@@ -196,7 +200,10 @@ function productImage(item) {
 function renderModuleCard(item, type) {
   const actionText = type === "service" ? "预约服务" : "立即购买";
   const rentText = type === "service" ? "关联设备租赁" : "立即租赁";
-  const priceNote = type === "service" ? "含每小时工程价格/台班价/项目报价" : "支持购买价、小时租赁价、台班租赁价";
+  const priceNote = type === "service" ? "含每小时工程价格/台班价/项目报价" : type === "mall" ? "仅开放立即购买入口" : "支持购买价、小时租赁价、台班租赁价";
+  const actions = type === "mall"
+    ? `<button class="primary-button" data-open-login="buyer">立即购买</button>`
+    : `<button class="primary-button" data-open-login="buyer">${actionText}</button><button class="mini-button" data-open-login="buyer">${rentText}</button><button class="mini-button" data-open-login="buyer">发起询价</button>`;
   return `
     <article class="module-card">
       ${productImage(item)}
@@ -213,9 +220,7 @@ function renderModuleCard(item, type) {
         <span>资料来源</span><strong>${item.tags || "平台数据"}</strong>
       </div>
       <div class="card-actions">
-        <button class="primary-button" data-open-login="buyer">${actionText}</button>
-        <button class="mini-button" data-open-login="buyer">${rentText}</button>
-        <button class="mini-button" data-open-login="buyer">发起询价</button>
+        ${actions}
       </div>
     </article>
   `;
@@ -253,10 +258,11 @@ function applyRole() {
   document.querySelector("#newDemandButton").style.display = role === "supplier" ? "none" : "inline-flex";
   document.querySelector("#newItemButton").style.display = role === "buyer" ? "none" : "inline-flex";
   document.querySelector("#resetButton").style.display = role === "admin" ? "inline-flex" : "none";
-  document.querySelector("#mallTitle").textContent = role === "buyer" ? "内采商城与资源目录" : role === "supplier" ? "我的资源上架" : "三大模块资源管理";
-  document.querySelector("#quoteTitle").textContent = role === "buyer" ? "报价比选" : role === "supplier" ? "可响应需求" : "询价竞价监管";
-  document.querySelector("#quoteDesc").textContent = role === "buyer" ? "查看供应商响应报价，作为下单依据" : role === "supplier" ? "选择项目并提交响应报价" : "查看需求响应和报价情况";
-  document.querySelector("#demandDesc").textContent = role === "buyer" ? "管理本单位采购需求，从发布到下单" : role === "supplier" ? "查看市场需求，判断是否参与响应" : "监管采购需求审核、匹配和采购路径";
+  document.querySelector("#mallTitle").textContent = role === "buyer" ? "内采商城" : role === "supplier" ? "我的资源上架" : "三大模块资源管理";
+  document.querySelector("#quoteTitle").textContent = role === "buyer" ? "我的项目" : role === "supplier" ? "可响应需求" : "询价竞价监管";
+  document.querySelector("#quoteDesc").textContent = role === "buyer" ? "查看已申请项目的报价和成交信息" : role === "supplier" ? "选择项目并提交响应报价" : "查看需求响应和报价情况";
+  document.querySelector("#demandTitle").textContent = role === "buyer" ? "我的项目" : role === "supplier" ? "市场需求" : "需求监管";
+  document.querySelector("#demandDesc").textContent = role === "buyer" ? "查看本单位申请项目的批复、匹配和执行状态" : role === "supplier" ? "查看市场需求，判断是否参与响应" : "监管采购需求审核、匹配和采购路径";
   document.querySelector("#orderDesc").textContent = role === "buyer" ? "跟踪本单位订单合同、履约和验收" : role === "supplier" ? "跟踪中标订单、合同确认和交付状态" : "监管全平台订单履约状态";
 }
 
@@ -282,6 +288,7 @@ function render() {
   renderHome();
   renderRoleGuide();
   renderItems();
+  renderResourceViews();
   renderDemands();
   renderQuotes();
   renderOrders();
@@ -371,7 +378,7 @@ function getShortcuts(role) {
   if (role === "supplier") {
     return [["新增资源上架", "mall", "primary"], ["查看可响应需求", "quote"], ["查看履约订单", "order"], ["查看操作记录", "log"]];
   }
-  return [["发布采购需求", "demand", "primary"], ["查看资源目录", "mall"], ["查看报价比选", "quote"], ["查看订单验收", "order"]];
+  return [["进入内采商城", "mall", "primary"], ["查看机械设备库", "equipment"], ["查看机械设备服务库", "serviceDesk"], ["查看我的项目", "demand"]];
 }
 
 function renderRoleGuide() {
@@ -398,10 +405,12 @@ function renderItems() {
   const term = document.querySelector("#itemSearch")?.value?.trim() || "";
   const items = state.items
     .filter((item) => [item.name, item.supplier, item.category, item.region].join("").includes(term))
+    .filter((item) => state.user.role !== "buyer" || item.channel === "内采商城")
     .filter((item) => state.user.role !== "buyer" || item.status === "上架")
     .filter((item) => state.user.role !== "supplier" || item.supplier === state.user.org || item.status === "上架");
   document.querySelector("#itemCards").innerHTML = items.map((item) => `
     <article class="card">
+      ${item.channel === "内采商城" ? productImage(item) : ""}
       <h3>${item.name}</h3>
       <div class="tags">
         <span class="tag">${item.channel}</span>
@@ -412,8 +421,29 @@ function renderItems() {
       <p>${item.description}</p>
       <span>${item.supplier}</span>
       <b class="price">${item.price}</b>
+      ${state.user.role === "buyer" && item.channel === "内采商城" ? `<button class="primary-button" data-open-login="buyer">立即购买</button>` : ""}
     </article>
   `).join("");
+}
+
+function renderResourceViews() {
+  const equipment = state.items.filter((item) => item.status === "上架" && item.channel === "机械设备");
+  const services = state.items.filter((item) => item.status === "上架" && (item.channel.includes("服务") || item.category.includes("服务")));
+  document.querySelector("#equipmentCards").innerHTML = equipment.map((item) => renderInternalCard(item, "设备")).join("");
+  document.querySelector("#serviceDeskCards").innerHTML = services.map((item) => renderInternalCard(item, "服务")).join("");
+}
+
+function renderInternalCard(item, label) {
+  return `
+    <article class="card">
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${label}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
+      <p>${item.description}</p>
+      <span>${item.supplier}</span>
+      <b class="price">${item.price}</b>
+      <button class="mini-button" data-shortcut-view="demand">申请项目</button>
+    </article>
+  `;
 }
 
 function renderDemands() {
@@ -423,11 +453,22 @@ function renderDemands() {
       <td>${item.region}</td>
       <td>${item.method}</td>
       <td>${money(item.budget)}</td>
-      <td>${item.matched}</td>
-      <td><span class="status ${item.status === "待审核" ? "warn" : ""}">${item.status}</span></td>
+      <td>${approvalText(item)}</td>
+      <td><span class="status ${item.status === "待审核" ? "warn" : ""}">${executionText(item)}</span></td>
       <td>${demandActions(item)}</td>
     </tr>
   `).join("");
+}
+
+function approvalText(item) {
+  if (item.status === "待审核") return "待批复";
+  return item.matched === "待管理员确认采购路径" ? "待匹配" : `已批复 / ${item.matched}`;
+}
+
+function executionText(item) {
+  if (item.status === "已下单") return "已生成订单";
+  if (item.status === "已匹配") return "已批复，待下单";
+  return item.status;
 }
 
 function renderQuotes() {
@@ -587,8 +628,14 @@ document.querySelector("#quoteForm").addEventListener("submit", async (event) =>
 });
 
 document.addEventListener("click", async (event) => {
+  const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
   const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
   const openLogin = event.target.closest("[data-open-login]")?.dataset?.openLogin;
+  if (mallFilter) {
+    event.preventDefault();
+    renderMallCategory(mallFilter);
+    return;
+  }
   if (publicView) {
     event.preventDefault();
     showPublicView(publicView);
