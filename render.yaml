@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: reserve-forest-machinery-platform
+    runtime: python
+    buildCommand: ""
+    startCommand: HOST=0.0.0.0 python3 server.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PLATFORM_DB_PATH
+        value: /opt/render/project/src/data/platform.db

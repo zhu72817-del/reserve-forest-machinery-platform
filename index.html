@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>储备林工程机械综合服务平台</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2307863b'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3E林%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="portal-page" id="portalPage">
+      <header class="portal-header">
+        <img src="assets/cfmc-logo.png" alt="中国林业物资有限公司" />
+        <nav class="portal-nav">
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="home">首页</button>
+          </div>
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="mall">内采商城</button>
+            <div class="mega-menu">
+              <section>
+                <h3>装备采购</h3>
+                <button data-public-view="mall">森林防火装备</button><button data-public-view="mall">车辆装备</button>
+              </section>
+              <section>
+                <h3>宣传册产品</h3>
+                <button data-public-view="mall">风力灭火机</button><button data-public-view="mall">消防水泵</button><button data-public-view="mall">森林防火服</button><button data-public-view="mall">指挥巡逻车</button>
+              </section>
+              <section>
+                <h3>产品来源</h3>
+                <button data-public-view="mall">森林防火产品宣传册</button><button data-public-view="mall">中国林业物资有限公司</button>
+              </section>
+            </div>
+          </div>
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="equipment">机械设备库</button>
+            <div class="mega-menu narrow">
+              <section>
+                <h3>工程设备</h3>
+                <button data-public-view="equipment">履带式挖掘机</button><button data-public-view="equipment">小型挖掘机</button><button data-public-view="equipment">装载机</button><button data-public-view="equipment">山地运输车</button>
+              </section>
+              <section>
+                <h3>林业设备</h3>
+                <button data-public-view="equipment">轨道式集材系统</button><button data-public-view="equipment">绞盘集材机</button><button data-public-view="equipment">采伐机</button><button data-public-view="equipment">大型运输无人机</button>
+              </section>
+            </div>
+          </div>
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="service">机械服务库</button>
+            <div class="mega-menu">
+              <section>
+                <h3>土地平整服务</h3>
+                <button data-public-view="service">林地清理</button><button data-public-view="service">土地整备</button><button data-public-view="service">道路修整</button><button data-public-view="service">机械开沟</button>
+              </section>
+              <section>
+                <h3>林木抚育服务</h3>
+                <button data-public-view="service">割灌除草</button><button data-public-view="service">修枝抚育</button><button data-public-view="service">施肥作业</button><button data-public-view="service">病虫害防治</button>
+              </section>
+              <section>
+                <h3>采伐运输服务</h3>
+                <button data-public-view="service">机械采伐</button><button data-public-view="service">木材集材</button><button data-public-view="service">木材短驳</button><button data-public-view="service">山地运输</button>
+              </section>
+            </div>
+          </div>
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="demands">项目需求</button>
+            <div class="mega-menu narrow">
+              <section>
+                <h3>需求大厅</h3>
+                <button data-public-view="demands">全部需求</button><button data-public-view="demands">最新需求</button><button data-public-view="demands">即将截止</button><button data-public-view="demands">已成交需求</button>
+              </section>
+              <section>
+                <h3>发布需求</h3>
+                <button data-public-view="demands">机械服务需求</button><button data-public-view="demands">装备采购需求</button><button data-public-view="demands">设备租赁需求</button><button data-public-view="demands">无人机服务需求</button>
+              </section>
+            </div>
+          </div>
+          <button class="portal-link" data-public-view="suppliers">供应商库</button>
+        </nav>
+        <div class="header-actions">
+          <button class="ghost-button" id="showRegisterButton">供应商入驻</button>
+          <button class="primary-button" id="showLoginButton">登录/用户中心</button>
+        </div>
+      </header>
+
+      <div class="public-view" data-public-view="home" id="publicHome">
+      <section class="portal-hero">
+        <div>
+          <h1>储备林工程机械综合服务平台</h1>
+          <p>面向储备林建设、森林防火、机械化营林和车辆装备采购的一站式内采服务平台。</p>
+          <div class="portal-actions">
+            <button class="ghost-button" data-public-view="mall">进入内采商城</button>
+            <button class="ghost-button" data-public-view="equipment">查看机械设备库</button>
+            <button class="ghost-button" data-public-view="service">查找机械服务库</button>
+          </div>
+        </div>
+        <div class="portal-search">
+          <input id="portalSearch" type="search" placeholder="搜索设备、服务、供应商、地区" />
+          <button class="primary-button">搜索</button>
+        </div>
+      </section>
+
+      <section class="core-entry">
+        <article>
+          <h2>内采商城</h2>
+          <p>严格展示宣传册产品：森林防火装备 9 款、车辆装备 7 款，支持购买、租赁和询价。</p>
+          <button data-public-view="mall">进入内采商城</button>
+        </article>
+        <article>
+          <h2>机械设备库</h2>
+          <p>挖掘机、装载机、运输车、轨道式集材系统、大型运输无人机等，可购买可租赁。</p>
+          <button data-public-view="equipment">查看机械设备库</button>
+        </article>
+        <article>
+          <h2>机械服务库</h2>
+          <p>林地整理、机械化造林、林木抚育、采伐运输、无人机巡查等工程服务。</p>
+          <button data-public-view="service">查找机械服务库</button>
+        </article>
+      </section>
+
+      <section class="portal-section" id="internalMall">
+        <div class="section-head">
+          <h2>推荐内采商品</h2>
+          <span>只展示宣传册产品：森林防火装备 9 款、车辆装备 7 款</span>
+        </div>
+        <div class="portal-cards" id="portalItems"></div>
+      </section>
+
+      <section class="portal-section" id="machineEquipment">
+        <div class="section-head">
+          <h2>推荐机械设备</h2>
+          <span>储备林工程建设和林业作业设备，支持购买和租赁</span>
+        </div>
+        <div class="portal-cards service-cards" id="portalEquipment"></div>
+      </section>
+
+      <section class="portal-section" id="machineService">
+        <div class="section-head">
+          <h2>推荐机械服务</h2>
+          <span>机械化作业、设备租赁、无人机巡查等服务</span>
+        </div>
+        <div class="portal-cards service-cards" id="portalServices"></div>
+      </section>
+
+      <section class="portal-stats" id="portalStats"></section>
+
+      <section class="portal-section split-section">
+        <div id="portalDemands">
+          <div class="section-head">
+            <h2>项目需求大厅</h2>
+            <span>项目单位发布，供应商在线响应</span>
+          </div>
+          <div class="portal-list" id="portalDemandsList"></div>
+        </div>
+        <div id="portalNotice">
+          <div class="section-head">
+            <h2>公告与指南</h2>
+            <span>平台通知、操作指南、政策文件</span>
+          </div>
+          <div class="portal-list" id="portalAnnouncements"></div>
+        </div>
+      </section>
+
+      <section class="portal-section" id="portalSuppliers">
+        <div class="section-head">
+          <h2>优质供应商</h2>
+          <span>机械服务、装备、无人机、防火物资供应能力</span>
+        </div>
+        <div class="portal-cards" id="portalSuppliersList"></div>
+      </section>
+      </div>
+
+      <section class="public-view module-page hidden" data-public-view="mall" id="moduleMall">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">内采商城</p>
+            <h1>森林防火装备与车辆装备采购</h1>
+            <p>内采商城只展示《森林防火产品完整宣传册》中的产品，按森林防火装备和车辆装备严格分类。</p>
+          </div>
+        </div>
+        <div class="module-layout">
+          <aside class="module-side">
+            <h3>商品分类</h3>
+            <button>森林防火装备</button><button>车辆装备</button>
+          </aside>
+          <main>
+            <div class="module-toolbar"><input type="search" placeholder="搜索宣传册产品、型号、供应商" /><button class="primary-button" data-open-login="buyer">发起询价</button></div>
+            <div class="module-stack" id="mallModuleList"></div>
+          </main>
+        </div>
+      </section>
+
+      <section class="public-view module-page hidden" data-public-view="equipment" id="moduleEquipment">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">机械设备库</p>
+            <h1>储备林工程建设设备资源目录</h1>
+            <p>每台设备单独展示购买和租赁选项，适配林地整理、采伐集材、运输和无人机作业。</p>
+          </div>
+        </div>
+        <div class="module-layout">
+          <aside class="module-side">
+            <h3>设备分类</h3>
+            <button>土地整理设备</button><button>林地清理设备</button><button>造林营林设备</button><button>采伐集材设备</button><button>运输设备</button><button>无人机设备</button>
+          </aside>
+          <main>
+            <div class="module-toolbar"><input type="search" placeholder="搜索设备、地区、品牌" /><button class="primary-button" data-open-login="buyer">发布设备需求</button></div>
+            <div class="module-grid" id="equipmentModuleList"></div>
+          </main>
+        </div>
+      </section>
+
+      <section class="public-view module-page hidden" data-public-view="service" id="moduleService">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">机械服务库</p>
+            <h1>按小时、台班、亩数或项目计价的工程服务</h1>
+            <p>服务不是普通商品，重点展示服务区域、设备人员配置、每小时工程价格和进场周期。</p>
+          </div>
+        </div>
+        <div class="module-layout">
+          <aside class="module-side">
+            <h3>服务分类</h3>
+            <button>林地整理服务</button><button>机械化造林服务</button><button>林木抚育服务</button><button>采伐运输服务</button><button>轨道式集材服务</button><button>无人机作业服务</button>
+          </aside>
+          <main>
+            <div class="module-toolbar"><input type="search" placeholder="搜索服务、地区、供应商" /><button class="primary-button" data-open-login="buyer">预约服务</button></div>
+            <div class="module-grid" id="serviceModuleList"></div>
+          </main>
+        </div>
+      </section>
+
+      <section class="public-view module-page hidden" data-public-view="demands" id="moduleDemands">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">项目需求</p>
+            <h1>项目需求大厅</h1>
+            <p>项目单位发布需求，供应商在线报价，管理员监管审核和成交流转。</p>
+          </div>
+          <button class="primary-button" data-open-login="buyer">发布项目需求</button>
+        </div>
+        <div class="portal-list module-list" id="demandModuleList"></div>
+      </section>
+
+      <section class="public-view module-page hidden" data-public-view="suppliers" id="moduleSuppliers">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">供应商库</p>
+            <h1>已入库供应商资源</h1>
+            <p>按设备类、物资类、服务类、无人机、车辆和森林防火装备供应能力分类管理。</p>
+          </div>
+          <button class="primary-button" id="moduleRegisterButton">申请供应商入驻</button>
+        </div>
+        <div class="module-grid" id="supplierModuleList"></div>
+      </section>
+    </section>
+
+    <section class="login-page hidden" id="loginPage">
+      <div class="login-hero">
+        <img src="assets/cfmc-logo.png" alt="中国林业物资有限公司" />
+        <h1>储备林工程机械综合服务平台</h1>
+        <p>面向储备林项目的设备采购、服务采购、询价竞价、订单合同和履约监管平台。</p>
+      </div>
+      <form class="login-card" id="loginForm">
+        <h2>用户登录</h2>
+        <label>
+          账号
+          <input name="username" required value="buyer" autocomplete="username" />
+        </label>
+        <label>
+          密码
+          <input name="password" required type="password" value="123456" autocomplete="current-password" />
+        </label>
+        <button class="primary-button" type="submit">登录平台</button>
+        <div class="demo-users">
+          <button type="button" data-demo="buyer">采购人</button>
+          <button type="button" data-demo="supplier">供应商</button>
+          <button type="button" data-demo="admin">管理员</button>
+        </div>
+        <p class="login-error" id="loginError"></p>
+        <button class="ghost-button" type="button" id="backPortalButton">返回首页</button>
+      </form>
+    </section>
+
+    <dialog id="registerDialog">
+      <form class="dialog-card" id="registerForm">
+        <h2>供应商入驻申请</h2>
+        <input name="name" required placeholder="企业名称" />
+        <div class="form-grid">
+          <input name="username" required placeholder="登录账号" autocomplete="username" />
+          <input name="password" required type="password" placeholder="登录密码" autocomplete="new-password" />
+        </div>
+        <div class="form-grid">
+          <select name="type"><option>机械作业服务供应商</option><option>森林防火装备供应商</option><option>无人机供应商</option><option>车辆供应商</option></select>
+          <select name="region"><option>重庆</option><option>广西</option><option>雷林</option><option>集团统筹</option></select>
+        </div>
+        <textarea name="business" rows="4" placeholder="主营业务、设备能力、服务区域、案例业绩"></textarea>
+        <menu><button class="ghost-button" type="button" data-close>取消</button><button class="primary-button">提交入驻</button></menu>
+      </form>
+    </dialog>
+
+    <section class="app-page hidden" id="appPage">
+      <header class="topbar">
+        <img src="assets/cfmc-logo.png" alt="中国林业物资有限公司" />
+        <div>
+          <strong>储备林工程机械综合服务平台</strong>
+          <span id="userMeta"></span>
+        </div>
+        <button class="ghost-button" id="logoutButton">退出</button>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="workspace">
+          <section class="welcome-panel">
+            <div>
+              <p class="eyebrow" id="roleLabel">采购人工作台</p>
+              <h1 id="workspaceTitle">采购业务一站式办理</h1>
+            </div>
+            <div class="quick-actions">
+              <button class="primary-button" id="newDemandButton">发布采购需求</button>
+              <button class="ghost-button" id="newItemButton">供应商上架</button>
+              <button class="ghost-button" id="resetButton">重置数据</button>
+            </div>
+          </section>
+
+          <section class="metrics" id="metrics"></section>
+
+          <section class="view-panel" id="homeView">
+            <div class="home-grid">
+              <section class="home-main">
+                <div class="section-head">
+                  <h2 id="homeMainTitle">今日待办</h2>
+                  <span id="homeMainDesc">按当前角色显示最需要处理的事项</span>
+                </div>
+                <div class="todo-list" id="todoList"></div>
+              </section>
+              <aside class="home-side">
+                <h2>快捷办理</h2>
+                <div class="shortcut-list" id="shortcutList"></div>
+              </aside>
+            </div>
+            <div class="role-guide" id="roleGuide"></div>
+            <div class="process-line" id="processLine"></div>
+          </section>
+
+          <section class="view-panel hidden" id="mallView">
+            <div class="section-head">
+              <h2 id="mallTitle">资源目录</h2>
+              <input id="itemSearch" type="search" placeholder="搜索服务、设备、供应商" />
+            </div>
+            <div class="cards" id="itemCards"></div>
+          </section>
+
+          <section class="view-panel hidden" id="demandView">
+            <div class="section-head">
+              <h2>采购需求</h2>
+              <span id="demandDesc">需求发布后自动匹配上架目录</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>需求</th><th>地区</th><th>方式</th><th>预算</th><th>匹配结果</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="demandRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="view-panel hidden" id="quoteView">
+            <div class="section-head">
+              <h2 id="quoteTitle">报价响应</h2>
+              <span id="quoteDesc">供应商查看采购需求并准备响应报价</span>
+            </div>
+            <div class="cards" id="quoteCards"></div>
+          </section>
+
+          <section class="view-panel hidden" id="logView">
+            <div class="section-head">
+              <h2>操作日志</h2>
+              <span>记录关键业务操作，便于追溯</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>对象</th></tr></thead>
+                <tbody id="logRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="view-panel hidden" id="orderView">
+            <div class="section-head">
+              <h2>订单合同</h2>
+              <span id="orderDesc">合同确认、履约、验收全流程跟踪</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>订单</th><th>供应商</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="orderRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="view-panel hidden" id="adminView">
+            <div class="section-head">
+              <h2>待办审核</h2>
+              <span>集中处理资源入库、需求匹配和异常待办</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>类型</th><th>对象</th><th>提交方/地区</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="adminRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+    </section>
+
+    <dialog id="demandDialog">
+      <form class="dialog-card" id="demandForm">
+        <h2>发布采购需求</h2>
+        <input name="title" required placeholder="需求名称" />
+        <div class="form-grid">
+          <select name="region"><option>重庆</option><option>广西</option><option>雷林</option></select>
+            <select name="category"><option>森林防火装备</option><option>车辆装备</option><option>生产经营机械</option><option>无人机装备</option><option>土地整理设备</option><option>采伐运输服务</option></select>
+        </div>
+        <div class="form-grid">
+          <input name="budget" required type="number" placeholder="预算金额" />
+          <select name="method"><option>网上超市</option><option>协议供货</option><option>询价采购</option><option>竞价采购</option></select>
+        </div>
+        <textarea name="description" rows="4" placeholder="需求说明"></textarea>
+        <menu><button class="ghost-button" type="button" data-close>取消</button><button class="primary-button">提交</button></menu>
+      </form>
+    </dialog>
+
+    <dialog id="quoteDialog">
+      <form class="dialog-card" id="quoteForm">
+        <h2>提交响应报价</h2>
+        <input name="demand_id" type="hidden" />
+        <input name="amount" required type="number" placeholder="报价金额" />
+        <textarea name="plan" rows="4" placeholder="响应方案、交付周期、服务承诺"></textarea>
+        <menu><button class="ghost-button" type="button" data-close>取消</button><button class="primary-button">提交报价</button></menu>
+      </form>
+    </dialog>
+
+    <dialog id="itemDialog">
+      <form class="dialog-card" id="itemForm">
+        <h2>供应商上架商品/服务</h2>
+        <input name="name" required placeholder="商品或服务名称" />
+        <div class="form-grid">
+          <select name="channel"><option>内采商城</option><option>机械设备</option><option>机械化服务</option><option>无人机服务</option><option>设备租赁服务</option></select>
+          <select name="category"><option>森林防火装备</option><option>车辆装备</option><option>生产经营机械</option><option>无人机装备</option><option>土地整理设备</option><option>机械化作业服务</option></select>
+        </div>
+        <div class="form-grid">
+          <select name="region"><option>重庆</option><option>广西</option><option>雷林</option><option>集团统筹</option></select>
+          <input name="price" required placeholder="参考价格" />
+        </div>
+        <textarea name="description" rows="4" placeholder="参数、服务能力、交付周期"></textarea>
+        <menu><button class="ghost-button" type="button" data-close>取消</button><button class="primary-button">提交审核</button></menu>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

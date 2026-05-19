@@ -1,0 +1,643 @@
+const state = {
+  user: null,
+  items: [],
+  demands: [],
+  orders: [],
+  quotes: [],
+  audit_logs: [],
+  public: null,
+  view: "home",
+};
+
+const views = ["home", "mall", "demand", "quote", "order", "admin", "log"];
+const roleTitle = {
+  buyer: ["需求方工作台", "提需求、选服务、下订单、做验收"],
+  supplier: ["供应商工作台", "上架资源、响应报价、推进履约"],
+  admin: ["物资公司管理后台", "审核准入、监管需求、统筹目录"],
+};
+const roleMenus = {
+  buyer: [
+    ["工作台", [["home", "首页"], ["log", "操作记录"]]],
+    ["采购业务", [["demand", "我的采购需求"], ["quote", "报价比选"], ["order", "订单与验收"]]],
+    ["资源浏览", [["mall", "可选资源目录"]]],
+  ],
+  supplier: [
+    ["工作台", [["home", "首页"], ["log", "操作记录"]]],
+    ["供应商业务", [["mall", "我的资源上架"], ["quote", "可响应需求"], ["order", "履约订单"]]],
+  ],
+  admin: [
+    ["工作台", [["home", "首页"], ["admin", "待办审核"], ["log", "操作日志"]]],
+    ["资源管理", [["mall", "资源目录管理"]]],
+    ["采购监管", [["demand", "需求监管"], ["quote", "询价报价监管"], ["order", "订单监管"]]],
+  ],
+};
+const roleGuide = {
+  buyer: [
+    ["发布采购需求", "填写项目地区、类别、预算和采购方式。"],
+    ["查看匹配资源", "平台从已上架目录中推荐供应商和服务。"],
+    ["比选报价", "查看供应商响应报价，确认采购方案。"],
+    ["订单验收", "生成订单后跟进合同、履约和验收。"],
+  ],
+  supplier: [
+    ["资源上架", "提交设备、商品或作业服务，等待管理员审核。"],
+    ["响应报价", "查看需求大厅，对符合能力范围的项目报价。"],
+    ["履约管理", "订单生成后推进合同确认、进场和交付。"],
+    ["记录留痕", "报价、履约等关键动作进入日志。"],
+  ],
+  admin: [
+    ["资源准入", "审核供应商提交的商品和服务。"],
+    ["需求监管", "处理未匹配或待审核采购需求。"],
+    ["目录统筹", "维护机械设备、无人机、防火装备资源目录。"],
+    ["全程留痕", "跟踪需求、报价、订单和履约操作。"],
+  ],
+};
+const roleProcess = {
+  buyer: ["编制需求", "选择采购方式", "比选报价", "生成订单", "验收评价"],
+  supplier: ["维护资源", "等待审核", "响应报价", "合同履约", "售后服务"],
+  admin: ["供应商准入", "目录审核", "需求监管", "订单监管", "归档留痕"],
+};
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "请求失败");
+  return data;
+}
+
+async function loadState() {
+  const data = await api("/api/state");
+  Object.assign(state, data);
+  render();
+}
+
+async function loadPublic() {
+  const data = await api("/api/public");
+  state.public = data;
+  renderPublic();
+}
+
+function renderPublic() {
+  const data = state.public;
+  if (!data) return;
+  const stats = [
+    ["入驻供应商", data.stats.suppliers],
+    ["内采商品", data.stats.items],
+    ["项目需求", data.stats.demands],
+    ["完成/在办订单", data.stats.orders],
+    ["覆盖区域", data.stats.regions],
+    ["无人机资源", data.stats.drones],
+    ["防火装备", data.stats.fire],
+    ["服务项目", data.stats.services],
+  ];
+  document.querySelector("#portalStats").innerHTML = stats.map(([label, value]) => `<div class="portal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+  document.querySelector("#portalItems").innerHTML = data.items.slice(0, 8).map((item) => `
+    <article class="portal-card">
+      ${productImage(item)}
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.channel}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
+      <p>${item.description}</p>
+      ${item.model ? `<span class="spec-line">型号：${item.model}</span>` : ""}
+      <b class="price">${item.price}</b>
+      <div class="card-actions"><button class="mini-button" data-public-view="mall">查看详情</button><button class="mini-button" data-open-login="buyer">询价</button></div>
+    </article>
+  `).join("");
+  document.querySelector("#portalEquipment").innerHTML = data.equipment.map((item) => `
+    <article class="portal-card">
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.channel}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
+      <p>${item.description}</p>
+      ${item.model ? `<span class="spec-line">型号：${item.model}</span>` : ""}
+      <b class="price">${item.price}</b>
+      <div class="card-actions"><button class="mini-button" data-public-view="equipment">查看详情</button><button class="mini-button" data-open-login="buyer">租赁</button></div>
+    </article>
+  `).join("");
+  document.querySelector("#portalServices").innerHTML = data.services.map((item) => `
+    <article class="portal-card">
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.channel}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
+      <p>${item.description}</p>
+      ${item.scenario ? `<span class="spec-line">场景：${item.scenario}</span>` : ""}
+      <b class="price">${item.price}</b>
+      <div class="card-actions"><button class="mini-button" data-public-view="service">查看详情</button><button class="mini-button" data-open-login="buyer">预约</button></div>
+    </article>
+  `).join("");
+  document.querySelector("#portalDemandsList").innerHTML = data.demands.map((item) => `
+    <article>
+      <h3>${item.title}</h3>
+      <p>${item.region} · ${item.method} · ${money(item.budget)} · ${item.status}</p>
+    </article>
+  `).join("");
+  document.querySelector("#portalSuppliersList").innerHTML = data.suppliers.map((item) => `
+    <article class="portal-card">
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.type}</span><span class="tag">${item.region}</span><span class="tag">评分 ${item.score}</span></div>
+      <p>${item.business}</p>
+      <span>${item.tags}</span>
+    </article>
+  `).join("");
+  document.querySelector("#portalAnnouncements").innerHTML = data.announcements.map((item) => `
+    <article>
+      <h3>${item.title}</h3>
+      <p>${item.type} · ${item.content}</p>
+    </article>
+  `).join("");
+  renderPublicModules(data);
+}
+
+function renderPublicModules(data) {
+  document.querySelector("#mallModuleList").innerHTML = renderMallGroups(data.items);
+  document.querySelector("#equipmentModuleList").innerHTML = data.equipment.map((item) => renderModuleCard(item, "equipment")).join("");
+  document.querySelector("#serviceModuleList").innerHTML = data.services.map((item) => renderModuleCard(item, "service")).join("");
+  document.querySelector("#demandModuleList").innerHTML = data.demands.map((item) => `
+    <article>
+      <h3>${item.title}</h3>
+      <p>${item.region} · ${item.category || "项目需求"} · ${item.method} · 预算 ${money(item.budget)} · ${item.status}</p>
+      <div class="card-actions"><button class="mini-button" data-open-login="buyer">查看详情</button><button class="mini-button" data-open-login="supplier">供应商报价</button></div>
+    </article>
+  `).join("");
+  document.querySelector("#supplierModuleList").innerHTML = data.suppliers.map((item) => `
+    <article class="portal-card">
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.type}</span><span class="tag">${item.region}</span><span class="tag">评分 ${item.score}</span></div>
+      <p>${item.business}</p>
+      <span>${item.tags}</span>
+      <div class="card-actions"><button class="mini-button" data-open-login="buyer">查看企业</button><button class="mini-button" data-open-login="buyer">发起询价</button></div>
+    </article>
+  `).join("");
+}
+
+function renderMallGroups(items) {
+  const groups = [
+    ["森林防火装备", "宣传册防火设备 9 款", items.filter((item) => item.category === "森林防火装备")],
+    ["车辆装备", "宣传册车辆产品 7 款", items.filter((item) => item.category === "车辆装备")],
+  ];
+  return groups.map(([title, desc, groupItems]) => `
+    <section class="mall-group">
+      <div class="mall-group-head">
+        <div>
+          <h2>${title}</h2>
+          <p>${desc}</p>
+        </div>
+        <span>${groupItems.length} 个产品</span>
+      </div>
+      <div class="module-grid">${groupItems.map((item) => renderModuleCard(item, "mall")).join("")}</div>
+    </section>
+  `).join("");
+}
+
+function productImage(item) {
+  if (!item.image) return `<div class="product-image placeholder">${item.category?.slice(0, 2) || "产品"}</div>`;
+  return `<div class="product-image"><img src="${item.image}" alt="${item.name}" loading="lazy" /></div>`;
+}
+
+function renderModuleCard(item, type) {
+  const actionText = type === "service" ? "预约服务" : "立即购买";
+  const rentText = type === "service" ? "关联设备租赁" : "立即租赁";
+  const priceNote = type === "service" ? "含每小时工程价格/台班价/项目报价" : "支持购买价、小时租赁价、台班租赁价";
+  return `
+    <article class="module-card">
+      ${productImage(item)}
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.channel}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
+      <p>${item.description}</p>
+      <div class="detail-grid">
+        <span>供货/服务商</span><strong>${item.supplier}</strong>
+        <span>型号/规格</span><strong>${item.model || "按项目配置"}</strong>
+        <span>参考价格</span><strong>${item.price}</strong>
+        <span>适用场景</span><strong>${item.scenario || item.category}</strong>
+        <span>核心参数</span><strong>${item.specs || item.description}</strong>
+        <span>交易能力</span><strong>${priceNote}</strong>
+        <span>资料来源</span><strong>${item.tags || "平台数据"}</strong>
+      </div>
+      <div class="card-actions">
+        <button class="primary-button" data-open-login="buyer">${actionText}</button>
+        <button class="mini-button" data-open-login="buyer">${rentText}</button>
+        <button class="mini-button" data-open-login="buyer">发起询价</button>
+      </div>
+    </article>
+  `;
+}
+
+function showPublicView(view = "home") {
+  document.querySelector("#loginPage").classList.add("hidden");
+  document.querySelector("#appPage").classList.add("hidden");
+  document.querySelector("#portalPage").classList.remove("hidden");
+  document.querySelectorAll(".public-view").forEach((section) => {
+    section.classList.toggle("hidden", section.dataset.publicView !== view);
+  });
+  document.querySelectorAll(".portal-link").forEach((button) => {
+    button.classList.toggle("active", button.dataset.publicView === view);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showApp(user) {
+  state.user = user;
+  document.querySelector("#portalPage").classList.add("hidden");
+  document.querySelector("#loginPage").classList.add("hidden");
+  document.querySelector("#appPage").classList.remove("hidden");
+  document.querySelector("#userMeta").textContent = `${user.org} · ${user.role_name}`;
+  renderMenu();
+  const [label, title] = roleTitle[user.role] || roleTitle.buyer;
+  document.querySelector("#roleLabel").textContent = label;
+  document.querySelector("#workspaceTitle").textContent = title;
+  applyRole();
+  setView("home");
+}
+
+function applyRole() {
+  const role = state.user?.role;
+  document.querySelector("#newDemandButton").style.display = role === "supplier" ? "none" : "inline-flex";
+  document.querySelector("#newItemButton").style.display = role === "buyer" ? "none" : "inline-flex";
+  document.querySelector("#resetButton").style.display = role === "admin" ? "inline-flex" : "none";
+  document.querySelector("#mallTitle").textContent = role === "buyer" ? "内采商城与资源目录" : role === "supplier" ? "我的资源上架" : "三大模块资源管理";
+  document.querySelector("#quoteTitle").textContent = role === "buyer" ? "报价比选" : role === "supplier" ? "可响应需求" : "询价竞价监管";
+  document.querySelector("#quoteDesc").textContent = role === "buyer" ? "查看供应商响应报价，作为下单依据" : role === "supplier" ? "选择项目并提交响应报价" : "查看需求响应和报价情况";
+  document.querySelector("#demandDesc").textContent = role === "buyer" ? "管理本单位采购需求，从发布到下单" : role === "supplier" ? "查看市场需求，判断是否参与响应" : "监管采购需求审核、匹配和采购路径";
+  document.querySelector("#orderDesc").textContent = role === "buyer" ? "跟踪本单位订单合同、履约和验收" : role === "supplier" ? "跟踪中标订单、合同确认和交付状态" : "监管全平台订单履约状态";
+}
+
+function setView(view) {
+  state.view = view;
+  views.forEach((name) => document.querySelector(`#${name}View`).classList.toggle("hidden", name !== view));
+  document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+}
+
+function renderMenu() {
+  const menus = roleMenus[state.user.role] || roleMenus.buyer;
+  document.querySelector("#sidebar").innerHTML = menus.map(([group, children]) => `
+    <div class="menu-group">
+      <div class="menu-title">${group}</div>
+      ${children.map(([view, label]) => `<button class="nav-item" data-view="${view}">${label}</button>`).join("")}
+    </div>
+  `).join("");
+  document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+}
+
+function render() {
+  renderMetrics();
+  renderHome();
+  renderRoleGuide();
+  renderItems();
+  renderDemands();
+  renderQuotes();
+  renderOrders();
+  renderAdmin();
+  renderLogs();
+  applyRole();
+}
+
+function renderHome() {
+  const role = state.user.role;
+  const todoList = getTodos(role);
+  document.querySelector("#homeMainTitle").textContent = role === "admin" ? "监管待办" : role === "supplier" ? "供应商待办" : "需求方待办";
+  document.querySelector("#homeMainDesc").textContent = role === "admin" ? "优先处理审核和异常匹配事项" : role === "supplier" ? "优先处理报价、上架和履约事项" : "优先处理需求、比选和验收事项";
+  document.querySelector("#todoList").innerHTML = todoList.length
+    ? todoList.map(renderTodo).join("")
+    : "<div class='empty-state'>当前暂无待办事项</div>";
+  document.querySelector("#shortcutList").innerHTML = getShortcuts(role).map(([label, view, tone]) => `
+    <button class="shortcut ${tone || ""}" data-shortcut-view="${view}">${label}</button>
+  `).join("");
+  document.querySelector("#processLine").innerHTML = roleProcess[role].map((label, index) => `<div><b>${index + 1}</b><span>${label}</span></div>`).join("");
+}
+
+function getTodos(role) {
+  if (role === "admin") {
+    return [
+      ...state.items.filter((item) => item.status === "待审核").map((item) => ({
+        type: "资源审核",
+        title: item.name,
+        meta: `${item.supplier} · ${item.category}`,
+        action: "审核上架",
+        view: "admin",
+      })),
+      ...state.demands.filter((item) => item.status === "待审核").map((item) => ({
+        type: "需求审核",
+        title: item.title,
+        meta: `${item.region} · ${item.method} · ${money(item.budget)}`,
+        action: "审核匹配",
+        view: "admin",
+      })),
+    ];
+  }
+  if (role === "supplier") {
+    return state.demands
+      .filter((item) => item.status !== "已下单")
+      .slice(0, 5)
+      .map((item) => ({
+        type: "可响应需求",
+        title: item.title,
+        meta: `${item.region} · ${item.category} · ${money(item.budget)}`,
+        action: "去报价",
+        view: "quote",
+      }));
+  }
+  return [
+    ...state.demands.filter((item) => item.status === "待审核").map((item) => ({
+      type: "待匹配需求",
+      title: item.title,
+      meta: `${item.region} · ${item.method} · ${money(item.budget)}`,
+      action: "查看进度",
+      view: "demand",
+    })),
+    ...state.orders.filter((item) => item.status !== "已完成").map((item) => ({
+      type: "订单跟进",
+      title: item.title,
+      meta: `${item.supplier} · ${item.status}`,
+      action: "查看订单",
+      view: "order",
+    })),
+  ].slice(0, 6);
+}
+
+function renderTodo(item) {
+  return `
+    <article class="todo-card">
+      <span class="todo-type">${item.type}</span>
+      <strong>${item.title}</strong>
+      <p>${item.meta}</p>
+      <button class="mini-button" data-shortcut-view="${item.view}">${item.action}</button>
+    </article>
+  `;
+}
+
+function getShortcuts(role) {
+  if (role === "admin") {
+    return [["处理待办审核", "admin", "primary"], ["查看目录管理", "mall"], ["查看需求监管", "demand"], ["查看操作日志", "log"]];
+  }
+  if (role === "supplier") {
+    return [["新增资源上架", "mall", "primary"], ["查看可响应需求", "quote"], ["查看履约订单", "order"], ["查看操作记录", "log"]];
+  }
+  return [["发布采购需求", "demand", "primary"], ["查看资源目录", "mall"], ["查看报价比选", "quote"], ["查看订单验收", "order"]];
+}
+
+function renderRoleGuide() {
+  const items = roleGuide[state.user.role] || roleGuide.buyer;
+  document.querySelector("#roleGuide").innerHTML = items.map(([title, desc]) => `
+    <article>
+      <strong>${title}</strong>
+      <span>${desc}</span>
+    </article>
+  `).join("");
+}
+
+function renderMetrics() {
+  const metrics = [
+    ["上架目录", state.items.filter((item) => item.status === "上架").length],
+    ["待审事项", state.items.filter((item) => item.status === "待审核").length + state.demands.filter((item) => item.status === "待审核").length],
+    ["采购需求", state.demands.length],
+    ["响应报价", state.quotes.length],
+  ];
+  document.querySelector("#metrics").innerHTML = metrics.map(([label, value]) => `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join("");
+}
+
+function renderItems() {
+  const term = document.querySelector("#itemSearch")?.value?.trim() || "";
+  const items = state.items
+    .filter((item) => [item.name, item.supplier, item.category, item.region].join("").includes(term))
+    .filter((item) => state.user.role !== "buyer" || item.status === "上架")
+    .filter((item) => state.user.role !== "supplier" || item.supplier === state.user.org || item.status === "上架");
+  document.querySelector("#itemCards").innerHTML = items.map((item) => `
+    <article class="card">
+      <h3>${item.name}</h3>
+      <div class="tags">
+        <span class="tag">${item.channel}</span>
+        <span class="tag">${item.category}</span>
+        <span class="tag">${item.region}</span>
+        <span class="status ${item.status === "待审核" ? "warn" : ""}">${item.status}</span>
+      </div>
+      <p>${item.description}</p>
+      <span>${item.supplier}</span>
+      <b class="price">${item.price}</b>
+    </article>
+  `).join("");
+}
+
+function renderDemands() {
+  document.querySelector("#demandRows").innerHTML = state.demands.map((item) => `
+    <tr>
+      <td><strong>${item.title}</strong><br>${item.description}</td>
+      <td>${item.region}</td>
+      <td>${item.method}</td>
+      <td>${money(item.budget)}</td>
+      <td>${item.matched}</td>
+      <td><span class="status ${item.status === "待审核" ? "warn" : ""}">${item.status}</span></td>
+      <td>${demandActions(item)}</td>
+    </tr>
+  `).join("");
+}
+
+function renderQuotes() {
+  const demands = state.user.role === "supplier"
+    ? state.demands.filter((item) => item.status !== "已下单")
+    : state.demands;
+  document.querySelector("#quoteCards").innerHTML = demands.map((item) => `
+    <article class="card">
+      <h3>${item.title}</h3>
+      <div class="tags"><span class="tag">${item.region}</span><span class="tag">${item.category}</span><span class="tag">${item.method}</span></div>
+      <p>${item.description}</p>
+      ${quoteSummary(item.id)}
+      <b class="price">${money(item.budget)}</b>
+      ${state.user.role === "supplier" || state.user.role === "admin" ? `<button class="mini-button" data-quote-demand="${item.id}">提交响应报价</button>` : `<span class="tag">供应商可报价</span>`}
+    </article>
+  `).join("");
+}
+
+function quoteSummary(demandId) {
+  const quotes = state.quotes.filter((quote) => quote.demand_id === demandId);
+  if (!quotes.length) return "<span class='tag'>暂无报价</span>";
+  const lowest = quotes.reduce((best, quote) => Number(quote.amount) < Number(best.amount) ? quote : best, quotes[0]);
+  return `<span class="tag">已报价 ${quotes.length} 家</span><span class="tag">最低 ${money(lowest.amount)}</span>`;
+}
+
+function renderOrders() {
+  document.querySelector("#orderRows").innerHTML = state.orders.map((item) => `
+    <tr>
+      <td><strong>${item.title}</strong><br>${item.id}</td>
+      <td>${item.supplier}</td>
+      <td>${money(item.amount)}</td>
+      <td><span class="status">${item.status}</span></td>
+      <td><button class="mini-button" data-order-next="${item.id}">推进流程</button></td>
+    </tr>
+  `).join("");
+}
+
+function renderAdmin() {
+  const itemRows = state.items.filter((item) => item.status === "待审核").map((item) => `
+    <tr><td>商品服务审核</td><td>${item.name}</td><td>${item.supplier}</td><td><span class="status warn">${item.status}</span></td><td><button class="mini-button" data-item-approve="${item.id}">审核上架</button></td></tr>
+  `);
+  const demandRows = state.demands.filter((item) => item.status === "待审核").map((item) => `
+    <tr><td>采购需求审核</td><td>${item.title}</td><td>${item.region}</td><td><span class="status warn">${item.status}</span></td><td><button class="mini-button" data-demand-approve="${item.id}">审核匹配</button></td></tr>
+  `);
+  document.querySelector("#adminRows").innerHTML = [...itemRows, ...demandRows].join("") || "<tr><td colspan='5'>暂无待办</td></tr>";
+}
+
+function renderLogs() {
+  document.querySelector("#logRows").innerHTML = state.audit_logs.map((item) => `
+    <tr>
+      <td>${item.created_at}</td>
+      <td>${item.actor}</td>
+      <td>${item.action}</td>
+      <td>${item.target}</td>
+    </tr>
+  `).join("") || "<tr><td colspan='4'>暂无日志</td></tr>";
+}
+
+function demandActions(item) {
+  if (state.user.role === "admin") {
+    return `<button class="mini-button" data-demand-approve="${item.id}">审核匹配</button>`;
+  }
+  if (state.user.role === "buyer" && item.status !== "已下单" && item.matched !== "待管理员确认采购路径") {
+    return `<button class="mini-button" data-order-from="${item.id}">生成订单</button>`;
+  }
+  return "<span class='tag'>查看</span>";
+}
+
+function money(value) {
+  return `${Number(value || 0).toLocaleString("zh-CN")}元`;
+}
+
+document.querySelector("#loginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  document.querySelector("#loginError").textContent = "";
+  try {
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const result = await api("/api/login", { method: "POST", body: JSON.stringify(data) });
+    showApp(result.user);
+    await loadState();
+  } catch (error) {
+    document.querySelector("#loginError").textContent = error.message;
+  }
+});
+
+function showLogin(role = "buyer") {
+  document.querySelector("#portalPage").classList.add("hidden");
+  document.querySelector("#loginPage").classList.remove("hidden");
+  document.querySelector("[name=username]").value = role;
+  document.querySelector("[name=password]").value = "123456";
+}
+
+document.querySelector("#showLoginButton").addEventListener("click", () => showLogin("buyer"));
+document.querySelectorAll("[data-open-login]").forEach((button) => button.addEventListener("click", () => showLogin(button.dataset.openLogin)));
+document.querySelector("#backPortalButton").addEventListener("click", () => {
+  document.querySelector("#loginPage").classList.add("hidden");
+  document.querySelector("#portalPage").classList.remove("hidden");
+  showPublicView("home");
+});
+document.querySelector("#showRegisterButton")?.addEventListener("click", () => document.querySelector("#registerDialog").showModal());
+document.querySelector("#moduleRegisterButton")?.addEventListener("click", () => document.querySelector("#registerDialog").showModal());
+
+document.addEventListener("click", (event) => {
+  const trigger = event.target.closest("[data-open-login]");
+  if (!trigger) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  showLogin(trigger.dataset.openLogin || "buyer");
+}, true);
+
+document.querySelector("#registerForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await api("/api/register_supplier", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) });
+  event.currentTarget.reset();
+  document.querySelector("#registerDialog").close();
+  await loadPublic();
+  alert("入驻申请已提交，请等待管理员审核。");
+});
+
+document.querySelectorAll("[data-demo]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelector("[name=username]").value = button.dataset.demo;
+    document.querySelector("[name=password]").value = "123456";
+  });
+});
+
+document.querySelector("#itemSearch").addEventListener("input", renderItems);
+document.querySelector("#newDemandButton").addEventListener("click", () => document.querySelector("#demandDialog").showModal());
+document.querySelector("#newItemButton").addEventListener("click", () => document.querySelector("#itemDialog").showModal());
+document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+
+document.querySelector("#demandForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await api("/api/demands", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) });
+  event.currentTarget.reset();
+  document.querySelector("#demandDialog").close();
+  await loadState();
+  setView("demand");
+});
+
+document.querySelector("#itemForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await api("/api/items", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) });
+  event.currentTarget.reset();
+  document.querySelector("#itemDialog").close();
+  await loadState();
+  setView("mall");
+});
+
+document.querySelector("#quoteForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await api("/api/quotes", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) });
+  event.currentTarget.reset();
+  document.querySelector("#quoteDialog").close();
+  await loadState();
+  setView("quote");
+});
+
+document.addEventListener("click", async (event) => {
+  const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
+  const openLogin = event.target.closest("[data-open-login]")?.dataset?.openLogin;
+  if (publicView) {
+    event.preventDefault();
+    showPublicView(publicView);
+    return;
+  }
+  if (openLogin) {
+    event.preventDefault();
+    showLogin(openLogin);
+    return;
+  }
+  const itemId = event.target.dataset?.itemApprove;
+  const demandId = event.target.dataset?.demandApprove;
+  const orderId = event.target.dataset?.orderNext;
+  const orderFrom = event.target.dataset?.orderFrom;
+  const quoteDemand = event.target.dataset?.quoteDemand;
+  const shortcutView = event.target.dataset?.shortcutView;
+  if (shortcutView) {
+    setView(shortcutView);
+    return;
+  }
+  if (itemId) await api(`/api/items/${itemId}/approve`, { method: "PATCH" });
+  if (demandId) await api(`/api/demands/${demandId}/approve`, { method: "PATCH" });
+  if (orderId) await api(`/api/orders/${orderId}/next`, { method: "PATCH" });
+  if (orderFrom) {
+    await api("/api/orders", { method: "POST", body: JSON.stringify({ demand_id: orderFrom }) });
+    setView("order");
+  }
+  if (quoteDemand) {
+    document.querySelector("#quoteForm [name=demand_id]").value = quoteDemand;
+    document.querySelector("#quoteDialog").showModal();
+  }
+  if (itemId || demandId || orderId || orderFrom) await loadState();
+});
+
+document.querySelector("#resetButton").addEventListener("click", async () => {
+  await api("/api/reset", { method: "POST" });
+  await loadState();
+});
+
+document.querySelector("#logoutButton").addEventListener("click", async () => {
+  await api("/api/logout", { method: "POST" });
+  location.reload();
+});
+
+api("/api/me").then((result) => {
+  if (result.user) {
+    showApp(result.user);
+    loadState();
+  }
+});
+
+loadPublic();
