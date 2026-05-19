@@ -198,6 +198,16 @@ def init_db():
               type TEXT NOT NULL,
               title TEXT NOT NULL,
               status TEXT NOT NULL,
+              buyer_org TEXT NOT NULL DEFAULT '',
+              supplier TEXT NOT NULL DEFAULT '',
+              contact TEXT NOT NULL DEFAULT '',
+              address TEXT NOT NULL DEFAULT '',
+              delivery_time TEXT NOT NULL DEFAULT '',
+              amount_text TEXT NOT NULL DEFAULT '',
+              payment_terms TEXT NOT NULL DEFAULT '',
+              content TEXT NOT NULL DEFAULT '',
+              flow_node TEXT NOT NULL DEFAULT '',
+              remark TEXT NOT NULL DEFAULT '',
               created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS announcements (
@@ -217,6 +227,21 @@ def init_db():
             "tags": "ALTER TABLE items ADD COLUMN tags TEXT NOT NULL DEFAULT ''",
         }.items():
             if column not in existing_columns:
+                conn.execute(ddl)
+        contract_columns = [row["name"] for row in conn.execute("PRAGMA table_info(contracts)").fetchall()]
+        for column, ddl in {
+            "buyer_org": "ALTER TABLE contracts ADD COLUMN buyer_org TEXT NOT NULL DEFAULT ''",
+            "supplier": "ALTER TABLE contracts ADD COLUMN supplier TEXT NOT NULL DEFAULT ''",
+            "contact": "ALTER TABLE contracts ADD COLUMN contact TEXT NOT NULL DEFAULT ''",
+            "address": "ALTER TABLE contracts ADD COLUMN address TEXT NOT NULL DEFAULT ''",
+            "delivery_time": "ALTER TABLE contracts ADD COLUMN delivery_time TEXT NOT NULL DEFAULT ''",
+            "amount_text": "ALTER TABLE contracts ADD COLUMN amount_text TEXT NOT NULL DEFAULT ''",
+            "payment_terms": "ALTER TABLE contracts ADD COLUMN payment_terms TEXT NOT NULL DEFAULT ''",
+            "content": "ALTER TABLE contracts ADD COLUMN content TEXT NOT NULL DEFAULT ''",
+            "flow_node": "ALTER TABLE contracts ADD COLUMN flow_node TEXT NOT NULL DEFAULT ''",
+            "remark": "ALTER TABLE contracts ADD COLUMN remark TEXT NOT NULL DEFAULT ''",
+        }.items():
+            if column not in contract_columns:
                 conn.execute(ddl)
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             conn.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", USERS)
@@ -289,6 +314,19 @@ def match_item(category, region):
             (category, region, region),
         ).fetchone()
     return item["name"] if item else "待管理员确认采购路径"
+
+
+def amount_to_int(value):
+    digits = "".join([char for char in str(value or "") if char.isdigit()])
+    return int(digits) if digits else 0
+
+
+def contract_type_for(item, procurement_type):
+    if "服务" in procurement_type or "服务" in item["channel"]:
+        return "储备林机械服务合同"
+    if "设备" in procurement_type:
+        return "机械设备采购/租赁合同"
+    return "内采商品采购合同"
 
 
 def public_payload():
@@ -508,6 +546,61 @@ class Handler(SimpleHTTPRequestHandler):
                 conn.execute("UPDATE demands SET status = '已下单' WHERE id = ?", (data["demand_id"],))
             write_log(user["org"], "生成采购订单", demand["title"])
             self.json({"ok": True, "id": order_id}, 201)
+            return
+        if path == "/api/procurements":
+            user = self.require_role("buyer", "admin")
+            if not user:
+                return
+            with connect() as conn:
+                item = conn.execute("SELECT * FROM items WHERE id = ?", (data.get("item_id"),)).fetchone()
+                if not item:
+                    self.json({"error": "采购资源不存在"}, 404)
+                    return
+                demand_id = f"D-{secrets.randbelow(90000) + 10000}"
+                order_id = f"O-{secrets.randbelow(90000) + 10000}"
+                contract_id = f"C-{secrets.randbelow(90000) + 10000}"
+                procurement_type = data.get("procurement_type", "内部采购")
+                amount_text = data.get("amount", item["price"])
+                amount = amount_to_int(amount_text)
+                title = f"{item['name']}采购项目"
+                if "服务" in procurement_type:
+                    title = f"{item['name']}服务项目"
+                elif "租赁" in procurement_type:
+                    title = f"{item['name']}租赁采购项目"
+                content = item["specs"] or item["description"]
+                conn.execute(
+                    "INSERT INTO demands (id, title, region, category, budget, method, status, matched, description) VALUES (?, ?, ?, ?, ?, ?, '已下单', ?, ?)",
+                    (demand_id, title, item["region"], item["category"], amount, procurement_type, item["name"], data.get("remark") or item["description"]),
+                )
+                conn.execute(
+                    "INSERT INTO orders (id, title, supplier, amount, status) VALUES (?, ?, ?, ?, '合同待确认')",
+                    (order_id, title, item["supplier"], amount),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO contracts
+                    (id, order_id, type, title, status, buyer_org, supplier, contact, address, delivery_time, amount_text, payment_terms, content, flow_node, remark)
+                    VALUES (?, ?, ?, ?, '待确认', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        contract_id,
+                        order_id,
+                        contract_type_for(item, procurement_type),
+                        title,
+                        user["org"],
+                        item["supplier"],
+                        data.get("contact", ""),
+                        data.get("address", ""),
+                        data.get("delivery_time", ""),
+                        amount_text,
+                        data.get("payment_terms", ""),
+                        content,
+                        data.get("flow_node", "1. 需求申请"),
+                        data.get("remark", ""),
+                    ),
+                )
+            write_log(user["org"], "生成内部采购合同", title)
+            self.json({"ok": True, "demand_id": demand_id, "order_id": order_id, "contract_id": contract_id}, 201)
             return
         self.send_error(404)
 

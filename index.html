@@ -462,6 +462,65 @@
       </form>
     </dialog>
 
+    <dialog id="procurementDialog">
+      <form class="dialog-card procurement-card" id="procurementForm">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">采购办理</p>
+            <h2 id="procurementTitle">内部采购流程与合同生成</h2>
+          </div>
+          <button class="icon-close" type="button" data-close>×</button>
+        </div>
+        <input name="item_id" type="hidden" />
+        <input name="procurement_type" type="hidden" />
+
+        <section class="flow-box">
+          <div class="flow-title">
+            <strong>内部采购流程图</strong>
+            <span>请选择当前办理节点，便于现场演示采购进度</span>
+          </div>
+          <div class="flow-steps" id="procurementFlow">
+            <label><input type="radio" name="flow_node" value="1. 需求申请" checked /><span>需求申请</span></label>
+            <label><input type="radio" name="flow_node" value="2. 部门审核" /><span>部门审核</span></label>
+            <label><input type="radio" name="flow_node" value="3. 采购审批" /><span>采购审批</span></label>
+            <label><input type="radio" name="flow_node" value="4. 合同生成" /><span>合同生成</span></label>
+            <label><input type="radio" name="flow_node" value="5. 履约交付" /><span>履约交付</span></label>
+            <label><input type="radio" name="flow_node" value="6. 验收归档" /><span>验收归档</span></label>
+          </div>
+        </section>
+
+        <section class="contract-template">
+          <div class="contract-head">
+            <strong id="contractTemplateTitle">储备林工程机械采购合同模板</strong>
+            <span id="contractNo">系统自动生成合同编号</span>
+          </div>
+          <div class="contract-party">
+            <p><b>甲方：</b><span id="contractBuyer">雷林储备林公司</span></p>
+            <p><b>乙方：</b><span id="contractSupplier">供应商</span></p>
+          </div>
+          <div class="contract-subject">
+            <p><b>采购标的：</b><span id="contractSubject">采购资源</span></p>
+            <p><b>规格/服务内容：</b><span id="contractSpecs">系统根据商品、设备或服务自动带出</span></p>
+          </div>
+          <div class="form-grid">
+            <label>联系人<input name="contact" required placeholder="例如：张经理 13800000000" /></label>
+            <label>交付/服务地点<input name="address" required placeholder="例如：雷林储备林项目现场" /></label>
+          </div>
+          <div class="form-grid">
+            <label>交付/服务时间<input name="delivery_time" required placeholder="例如：合同签订后 15 日内" /></label>
+            <label>合同金额<input name="amount" required placeholder="例如：面议 / 120000 元" /></label>
+          </div>
+          <label>付款方式<input name="payment_terms" placeholder="例如：验收合格后按集团内采结算流程支付" /></label>
+          <label>补充条款<textarea name="remark" rows="3" placeholder="填写质保、运输、安装、人员进场、验收标准等补充约定"></textarea></label>
+        </section>
+
+        <menu>
+          <button class="ghost-button" type="button" data-close>取消</button>
+          <button class="primary-button" type="submit">生成项目、订单和合同</button>
+        </menu>
+      </form>
+    </dialog>
+
     <script src="app.js"></script>
   </body>
 </html>

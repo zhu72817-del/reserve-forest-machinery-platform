@@ -1048,6 +1048,10 @@ dialog {
   padding: 0;
 }
 
+#procurementDialog {
+  width: min(1040px, calc(100vw - 32px));
+}
+
 dialog::backdrop {
   background: rgba(0, 39, 18, 0.48);
 }
@@ -1057,6 +1061,131 @@ dialog::backdrop {
   gap: 14px;
   padding: 24px;
   background: #fff;
+}
+
+.procurement-card {
+  gap: 18px;
+  max-height: min(88vh, 860px);
+  overflow: auto;
+}
+
+.dialog-head,
+.contract-head,
+.flow-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.icon-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: #fff;
+  font-size: 20px;
+}
+
+.flow-box,
+.contract-template {
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.flow-box {
+  padding: 18px;
+  border-left: 4px solid var(--blue);
+  background: linear-gradient(90deg, #f5f9ff, #fff);
+}
+
+.flow-title span,
+.contract-head span {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.flow-steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.flow-steps label {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid #d8e6ff;
+  background: #fff;
+  text-align: center;
+}
+
+.flow-steps label::after {
+  content: "";
+  position: absolute;
+  top: 34px;
+  right: -10px;
+  width: 10px;
+  height: 2px;
+  background: #b9cbea;
+}
+
+.flow-steps label:last-child::after {
+  display: none;
+}
+
+.flow-steps input {
+  width: 16px;
+  height: 16px;
+  margin: 0 auto;
+  accent-color: var(--blue);
+}
+
+.flow-steps label:has(input:checked) {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.contract-template {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-top: 3px solid var(--green);
+  background: #fbfdfb;
+}
+
+.contract-head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.contract-head strong {
+  color: var(--deep);
+  font-size: 20px;
+}
+
+.contract-party,
+.contract-subject {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e1ece5;
+  background: #fff;
+}
+
+.contract-subject {
+  grid-template-columns: 0.9fr 1.4fr;
+}
+
+.contract-party p,
+.contract-subject p {
+  line-height: 1.7;
 }
 
 .form-grid {
@@ -1090,8 +1219,15 @@ menu {
   .metrics,
   .home-grid,
   .role-guide,
-  .process-line {
+  .process-line,
+  .flow-steps,
+  .contract-party,
+  .contract-subject {
     grid-template-columns: 1fr;
+  }
+
+  .flow-steps label::after {
+    display: none;
   }
 
   .todo-card {

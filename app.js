@@ -5,6 +5,7 @@ const state = {
   orders: [],
   quotes: [],
   audit_logs: [],
+  contracts: [],
   public: null,
   view: "home",
 };
@@ -421,7 +422,7 @@ function renderItems() {
       <p>${item.description}</p>
       <span>${item.supplier}</span>
       <b class="price">${item.price}</b>
-      ${state.user.role === "buyer" && item.channel === "内采商城" ? `<button class="primary-button" data-open-login="buyer">立即购买</button>` : ""}
+      ${state.user.role === "buyer" && item.channel === "内采商城" ? `<button class="primary-button" data-procure-item="${item.id}" data-procure-type="内采商品采购">立即购买</button>` : ""}
     </article>
   `).join("");
 }
@@ -434,6 +435,8 @@ function renderResourceViews() {
 }
 
 function renderInternalCard(item, label) {
+  const type = label === "设备" ? "机械设备采购/租赁" : "机械服务采购";
+  const action = label === "设备" ? "办理采购/租赁" : "办理服务采购";
   return `
     <article class="card">
       <h3>${item.name}</h3>
@@ -441,7 +444,7 @@ function renderInternalCard(item, label) {
       <p>${item.description}</p>
       <span>${item.supplier}</span>
       <b class="price">${item.price}</b>
-      <button class="mini-button" data-shortcut-view="demand">申请项目</button>
+      <button class="primary-button" data-procure-item="${item.id}" data-procure-type="${type}">${action}</button>
     </article>
   `;
 }
@@ -501,7 +504,7 @@ function renderOrders() {
       <td>${item.supplier}</td>
       <td>${money(item.amount)}</td>
       <td><span class="status">${item.status}</span></td>
-      <td><button class="mini-button" data-order-next="${item.id}">推进流程</button></td>
+      <td><button class="mini-button" data-order-next="${item.id}">推进流程</button><button class="mini-button" data-contract-order="${item.id}">查看合同</button></td>
     </tr>
   `).join("");
 }
@@ -539,6 +542,82 @@ function demandActions(item) {
 
 function money(value) {
   return `${Number(value || 0).toLocaleString("zh-CN")}元`;
+}
+
+function itemById(id) {
+  return state.items.find((item) => item.id === id) || state.public?.items?.find((item) => item.id === id) || state.public?.equipment?.find((item) => item.id === id) || state.public?.services?.find((item) => item.id === id);
+}
+
+function contractTypeFor(item, type) {
+  if (type.includes("服务") || item.channel.includes("服务")) return "储备林机械服务合同";
+  if (type.includes("设备")) return "机械设备采购/租赁合同";
+  return "内采商品采购合同";
+}
+
+function openProcurement(itemId, type) {
+  const item = itemById(itemId);
+  if (!item) {
+    alert("未找到采购资源，请刷新页面后重试。");
+    return;
+  }
+  const form = document.querySelector("#procurementForm");
+  form.reset();
+  form.item_id.value = item.id;
+  form.procurement_type.value = type;
+  document.querySelector("#procurementTitle").textContent = `${item.name}｜${type}`;
+  document.querySelector("#contractTemplateTitle").textContent = contractTypeFor(item, type);
+  document.querySelector("#contractNo").textContent = `合同编号：HT-${new Date().getFullYear()}-${item.id}`;
+  document.querySelector("#contractBuyer").textContent = state.user?.org || "采购单位";
+  document.querySelector("#contractSupplier").textContent = item.supplier;
+  document.querySelector("#contractSubject").textContent = item.name;
+  document.querySelector("#contractSpecs").textContent = item.specs || item.description;
+  form.contact.value = "";
+  form.address.value = item.region === "集团统筹" ? "" : `${item.region}项目现场`;
+  form.delivery_time.value = type.includes("服务") ? "按项目进场计划执行" : "合同签订后 15 日内";
+  form.amount.value = item.price;
+  form.payment_terms.value = "验收合格后按集团内采结算流程支付";
+  form.remark.value = item.scenario ? `适用场景：${item.scenario}` : "";
+  document.querySelector("#procurementDialog").showModal();
+}
+
+function showContract(orderId) {
+  const contract = state.contracts.find((item) => item.order_id === orderId);
+  const order = state.orders.find((item) => item.id === orderId);
+  if (!contract || !order) {
+    alert("该订单暂无合同模板。");
+    return;
+  }
+  const pseudoItem = {
+    id: orderId,
+    name: contract.title,
+    supplier: contract.supplier || order.supplier,
+    specs: contract.content || "根据订单内容执行",
+    description: contract.content || "根据订单内容执行",
+    channel: contract.type || "合同",
+    price: contract.amount_text || order.amount,
+    region: "",
+  };
+  document.querySelector("#procurementTitle").textContent = `${contract.title}｜合同查看`;
+  document.querySelector("#contractTemplateTitle").textContent = contract.type || "采购合同";
+  document.querySelector("#contractNo").textContent = `合同编号：${contract.id}`;
+  document.querySelector("#contractBuyer").textContent = contract.buyer_org || state.user?.org || "采购单位";
+  document.querySelector("#contractSupplier").textContent = pseudoItem.supplier;
+  document.querySelector("#contractSubject").textContent = contract.title;
+  document.querySelector("#contractSpecs").textContent = pseudoItem.specs;
+  const form = document.querySelector("#procurementForm");
+  form.item_id.value = pseudoItem.id;
+  form.procurement_type.value = "合同查看";
+  form.contact.value = contract.contact || "";
+  form.address.value = contract.address || "";
+  form.delivery_time.value = contract.delivery_time || "";
+  form.amount.value = contract.amount_text || money(order.amount);
+  form.payment_terms.value = contract.payment_terms || "";
+  form.remark.value = contract.remark || "";
+  const flowNode = contract.flow_node || "4. 合同生成";
+  document.querySelectorAll("#procurementFlow input").forEach((input) => {
+    input.checked = input.value === flowNode;
+  });
+  document.querySelector("#procurementDialog").showModal();
 }
 
 document.querySelector("#loginForm").addEventListener("submit", async (event) => {
@@ -627,6 +706,21 @@ document.querySelector("#quoteForm").addEventListener("submit", async (event) =>
   setView("quote");
 });
 
+document.querySelector("#procurementForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  if (data.procurement_type === "合同查看") {
+    document.querySelector("#procurementDialog").close();
+    return;
+  }
+  await api("/api/procurements", { method: "POST", body: JSON.stringify(data) });
+  form.reset();
+  document.querySelector("#procurementDialog").close();
+  await loadState();
+  setView("order");
+});
+
 document.addEventListener("click", async (event) => {
   const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
   const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
@@ -652,8 +746,18 @@ document.addEventListener("click", async (event) => {
   const orderFrom = event.target.dataset?.orderFrom;
   const quoteDemand = event.target.dataset?.quoteDemand;
   const shortcutView = event.target.dataset?.shortcutView;
+  const procureItem = event.target.dataset?.procureItem;
+  const contractOrder = event.target.dataset?.contractOrder;
   if (shortcutView) {
     setView(shortcutView);
+    return;
+  }
+  if (procureItem) {
+    openProcurement(procureItem, event.target.dataset?.procureType || "内部采购");
+    return;
+  }
+  if (contractOrder) {
+    showContract(contractOrder);
     return;
   }
   if (itemId) await api(`/api/items/${itemId}/approve`, { method: "PATCH" });
