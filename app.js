@@ -94,7 +94,7 @@ function renderPublic() {
     ["服务项目", data.stats.services],
   ];
   document.querySelector("#portalStats").innerHTML = stats.map(([label, value]) => `<div class="portal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
-  const recommended = ["森林防火服 XGF01", "油锯 XGJ-66", "风力灭火机 XG25-F", "坦克300森林防火指挥车基型车"]
+  const recommended = ["油锯 XGJ-66", "风力灭火机 XG25-F", "2吨手扶履带运输车", "坦克300森林防火指挥车基型车"]
     .map((name) => data.items.find((item) => item.name === name))
     .filter(Boolean);
   document.querySelector("#portalItems").innerHTML = recommended.map((item) => `
@@ -105,7 +105,7 @@ function renderPublic() {
       <p>${item.description}</p>
       ${item.model ? `<span class="spec-line">型号：${item.model}</span>` : ""}
       <b class="price">${item.price}</b>
-      <div class="card-actions"><button class="mini-button" data-public-view="mall">查看详情</button><button class="mini-button" data-open-login="buyer">立即购买</button></div>
+      <div class="card-actions"><button class="mini-button" data-mall-focus="${item.id}">查看详情</button><button class="mini-button" data-open-login="buyer">立即购买</button></div>
     </article>
   `).join("");
   document.querySelector("#portalEquipment").innerHTML = data.equipment.map((item) => `
@@ -235,6 +235,7 @@ function renderModuleCard(item, type) {
       : `<button class="primary-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">发布服务采购需求</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">发起询价</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">加入需求清单</button>`;
   return `
     <article class="module-card">
+      <span id="product-${item.id}" class="anchor-target"></span>
       ${productImage(item)}
       <h3>${item.name}</h3>
       <div class="tags"><span class="tag">${item.channel}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
@@ -253,6 +254,21 @@ function renderModuleCard(item, type) {
       </div>
     </article>
   `;
+}
+
+function focusMallProduct(itemId) {
+  const item = itemById(itemId);
+  if (!item) return;
+  renderMallCategory(item.category);
+  showPublicView("mall");
+  requestAnimationFrame(() => {
+    const anchor = document.querySelector(`#product-${CSS.escape(itemId)}`);
+    const card = anchor?.closest(".module-card");
+    if (!card) return;
+    card.classList.add("focus-card");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => card.classList.remove("focus-card"), 1800);
+  });
 }
 
 function showPublicView(view = "home") {
@@ -794,6 +810,7 @@ document.querySelector("#procurementForm").addEventListener("submit", async (eve
 
 document.addEventListener("click", async (event) => {
   const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
+  const mallFocus = event.target.closest("[data-mall-focus]")?.dataset?.mallFocus;
   const equipmentFilter = event.target.closest("[data-equipment-filter]")?.dataset?.equipmentFilter;
   const serviceFilter = event.target.closest("[data-service-filter]")?.dataset?.serviceFilter;
   const publicDemandItem = event.target.closest("[data-public-demand-item]")?.dataset?.publicDemandItem;
@@ -802,6 +819,11 @@ document.addEventListener("click", async (event) => {
   if (mallFilter) {
     event.preventDefault();
     renderMallCategory(mallFilter);
+    return;
+  }
+  if (mallFocus) {
+    event.preventDefault();
+    focusMallProduct(mallFocus);
     return;
   }
   if (equipmentFilter) {
