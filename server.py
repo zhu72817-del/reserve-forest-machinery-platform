@@ -15,6 +15,8 @@ SESSIONS = {}
 USERS = [
     ("superadmin", "123456", "超级管理员", "系统管理中心", "admin"),
     ("manager", "123456", "平台管理员", "中国林业物资有限公司", "admin"),
+    ("chenyx", "123456", "权限管理员", "中国林业物资有限公司", "admin"),
+    ("zhuk", "123456", "超级管理员", "中林集团", "admin"),
     ("buyer", "123456", "采购人", "雷林储备林公司", "buyer"),
     ("supplier", "123456", "供应商", "华南林机服务商", "supplier"),
     ("admin", "123456", "管理员", "中国林业物资有限公司", "admin"),
@@ -81,6 +83,18 @@ PRODUCT_IMAGES = {
     "I-VH-005": "assets/products/I-VH-005.png",
     "I-VH-006": "assets/products/I-VH-006.png",
     "I-VH-007": "assets/products/I-VH-007.png",
+    "EQ-3001": "https://commons.wikimedia.org/wiki/Special:FilePath/Caterpillar%20330%20excavator%20on%20a%20pile%20of%20dirt.jpg",
+    "EQ-3002": "https://commons.wikimedia.org/wiki/Special:FilePath/Minibagger%20Bobcat%20331.jpg",
+    "EQ-3003": "https://commons.wikimedia.org/wiki/Special:FilePath/Volvo%20L90F%20wheel%20loader.jpg",
+    "EQ-3004": "https://commons.wikimedia.org/wiki/Special:FilePath/Skidder%20system%20of%20cable%20yarding%20%281978%29.jpg",
+    "EQ-3005": "https://commons.wikimedia.org/wiki/Special:FilePath/Malwa%20460%20forwarder%20d.jpg",
+    "EQ-3006": "https://commons.wikimedia.org/wiki/Special:FilePath/DJI%20Phantom%204%20Pro%20Drone.jpg",
+    "SVC-2001": "https://commons.wikimedia.org/wiki/Special:FilePath/Forestry%20machine%20in%20Chase%20Wood%20-%20geograph.org.uk%20-%204091832.jpg",
+    "SVC-2002": "https://commons.wikimedia.org/wiki/Special:FilePath/Tree%20planting%20with%20Pottiputki.jpg",
+    "SVC-2003": "https://cdn.pixabay.com/photo/2016/06/09/18/49/daf-1440558_1280.jpg",
+    "SVC-2004": "https://commons.wikimedia.org/wiki/Special:FilePath/Malwa%20460%20forwarder%20d.jpg",
+    "SVC-2005": "https://commons.wikimedia.org/wiki/Special:FilePath/DJI%20Phantom%204%20Pro%20Drone.jpg",
+    "SVC-2006": "https://commons.wikimedia.org/wiki/Special:FilePath/Caterpillar%20330%20excavator%20on%20a%20pile%20of%20dirt.jpg",
 }
 
 DEMANDS = [
@@ -245,6 +259,8 @@ def init_db():
                 conn.execute(ddl)
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             conn.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", USERS)
+        for user in USERS:
+            conn.execute("INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)", user)
         for old_id in OBSOLETE_DEMO_ITEM_IDS:
             conn.execute("DELETE FROM items WHERE id = ?", (old_id,))
         conn.executemany("INSERT OR REPLACE INTO items (id, name, channel, category, region, supplier, price, description, status, model, specs, scenario, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ITEMS)
@@ -327,6 +343,16 @@ def contract_type_for(item, procurement_type):
     if "设备" in procurement_type:
         return "机械设备采购/租赁合同"
     return "内采商品采购合同"
+
+
+def contract_type_for_method(method):
+    if "服务" in method:
+        return "储备林机械服务合同"
+    if "租赁" in method:
+        return "机械设备租赁合同"
+    if "设备" in method:
+        return "机械设备采购合同"
+    return "采购合同"
 
 
 def public_payload():
@@ -492,11 +518,24 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             demand_id = f"D-{secrets.randbelow(90000) + 10000}"
             matched = match_item(data["category"], data["region"])
-            status = "已匹配" if matched != "待管理员确认采购路径" else "待审核"
+            resource_methods = {"设备采购需求", "设备租赁需求", "机械服务需求"}
+            is_resource_demand = data.get("method") in resource_methods or bool(data.get("source_item_id"))
+            status = "报价中" if is_resource_demand else ("已匹配" if matched != "待管理员确认采购路径" else "待审核")
+            matched_text = "已发布，等待库内供应商报价" if is_resource_demand else matched
+            detail_parts = [
+                data.get("description", ""),
+                f"数量/作业面积：{data.get('quantity', '')}" if data.get("quantity") else "",
+                f"交付/进场/开工时间：{data.get('delivery_time', '')}" if data.get("delivery_time") else "",
+                f"使用场景/地形条件：{data.get('work_condition', '')}" if data.get("work_condition") else "",
+                f"每小时工程价格参考：{data.get('hourly_price_ref', '')}" if data.get("hourly_price_ref") else "",
+                data.get("need_operator", ""),
+                data.get("need_transport", ""),
+            ]
+            description = "\n".join([part for part in detail_parts if part])
             with connect() as conn:
                 conn.execute(
                     "INSERT INTO demands (id, title, region, category, budget, method, status, matched, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (demand_id, data["title"], data["region"], data["category"], int(data["budget"]), data["method"], status, matched, data.get("description", "")),
+                    (demand_id, data["title"], data["region"], data["category"], int(data["budget"] or 0), data["method"], status, matched_text, description),
                 )
             write_log(user["org"], "发布采购需求", data["title"])
             self.json({"ok": True, "id": demand_id}, 201)
@@ -540,8 +579,22 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 contract_id = f"C-{secrets.randbelow(90000) + 10000}"
                 conn.execute(
-                    "INSERT INTO contracts (id, order_id, type, title, status) VALUES (?, ?, ?, ?, '待确认')",
-                    (contract_id, order_id, "服务采购合同", demand["title"]),
+                    """
+                    INSERT INTO contracts
+                    (id, order_id, type, title, status, buyer_org, supplier, amount_text, content, flow_node, remark)
+                    VALUES (?, ?, ?, ?, '待确认', ?, ?, ?, ?, '4. 合同生成', ?)
+                    """,
+                    (
+                        contract_id,
+                        order_id,
+                        contract_type_for_method(demand["method"]),
+                        demand["title"],
+                        user["org"],
+                        supplier,
+                        f"{int(amount):,}元",
+                        demand["description"],
+                        f"根据项目需求和供应商报价生成，采购方式：{demand['method']}",
+                    ),
                 )
                 conn.execute("UPDATE demands SET status = '已下单' WHERE id = ?", (data["demand_id"],))
             write_log(user["org"], "生成采购订单", demand["title"])

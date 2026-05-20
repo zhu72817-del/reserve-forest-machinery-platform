@@ -316,6 +316,13 @@ button {
   background: #fff;
 }
 
+.module-side button.active {
+  color: #fff;
+  border-color: var(--blue);
+  border-left-color: var(--blue);
+  background: var(--blue);
+}
+
 .portal-card {
   min-height: 100%;
 }

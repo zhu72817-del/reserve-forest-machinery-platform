@@ -9,6 +9,7 @@ const state = {
   public: null,
   view: "home",
 };
+let pendingDemandIntent = null;
 
 const views = ["home", "mall", "equipment", "serviceDesk", "demand", "quote", "order", "admin", "log"];
 const roleTitle = {
@@ -34,9 +35,9 @@ const roleMenus = {
 const roleGuide = {
   buyer: [
     ["进入内采商城", "查看宣传册产品，选择商品后发起购买申请。"],
-    ["查看设备服务", "按设备库和服务库查找项目所需资源。"],
-    ["我的项目", "查看项目是否批复、是否匹配和执行进度。"],
-    ["订单验收", "生成订单后跟进合同、履约和验收。"],
+    ["查看设备服务", "按设备库和服务库选择采购、租赁或服务方向。"],
+    ["发布项目需求", "设备和服务不直接成交，提交需求后组织库内供应商报价。"],
+    ["比选生成合同", "在我的项目查看报价，确定供应商后生成合同并履约。"],
   ],
   supplier: [
     ["资源上架", "提交设备、商品或作业服务，等待管理员审核。"],
@@ -152,8 +153,8 @@ function renderPublic() {
 
 function renderPublicModules(data) {
   renderMallCategory(currentMallCategory, data.items);
-  document.querySelector("#equipmentModuleList").innerHTML = data.equipment.map((item) => renderModuleCard(item, "equipment")).join("");
-  document.querySelector("#serviceModuleList").innerHTML = data.services.map((item) => renderModuleCard(item, "service")).join("");
+  renderEquipmentCategory(currentEquipmentCategory, data.equipment);
+  renderServiceCategory(currentServiceCategory, data.services);
   document.querySelector("#demandModuleList").innerHTML = data.demands.map((item) => `
     <article>
       <h3>${item.title}</h3>
@@ -173,6 +174,8 @@ function renderPublicModules(data) {
 }
 
 let currentMallCategory = "森林防火装备";
+let currentEquipmentCategory = "全部";
+let currentServiceCategory = "全部";
 
 function renderMallCategory(category = "森林防火装备", sourceItems = state.public?.items || []) {
   currentMallCategory = category;
@@ -193,6 +196,29 @@ function renderMallCategory(category = "森林防火装备", sourceItems = state
   `;
 }
 
+function renderEquipmentCategory(category = "全部", sourceItems = state.public?.equipment || []) {
+  currentEquipmentCategory = category;
+  document.querySelectorAll("[data-equipment-filter]").forEach((button) => button.classList.toggle("active", button.dataset.equipmentFilter === category));
+  const items = category === "全部" ? sourceItems : sourceItems.filter((item) => item.category === category);
+  document.querySelector("#equipmentModuleList").innerHTML = items.map((item) => renderModuleCard(item, "equipment")).join("") || "<div class='empty-state'>该分类暂无设备</div>";
+}
+
+function renderServiceCategory(category = "全部", sourceItems = state.public?.services || []) {
+  currentServiceCategory = category;
+  document.querySelectorAll("[data-service-filter]").forEach((button) => button.classList.toggle("active", button.dataset.serviceFilter === category));
+  const items = category === "全部" ? sourceItems : sourceItems.filter((item) => serviceCategoryMatches(item, category));
+  document.querySelector("#serviceModuleList").innerHTML = items.map((item) => renderModuleCard(item, "service")).join("") || "<div class='empty-state'>该分类暂无服务</div>";
+}
+
+function serviceCategoryMatches(item, category) {
+  const text = `${item.name}${item.category}${item.scenario || ""}${item.description || ""}`;
+  if (category === "林木抚育服务") return text.includes("抚育") || text.includes("割灌");
+  if (category === "轨道式集材服务") return text.includes("集材") || text.includes("轨道");
+  if (category === "无人机作业服务") return text.includes("无人机");
+  if (category === "设备带人作业服务") return text.includes("设备租赁") || text.includes("带人");
+  return text.includes(category.replace("服务", ""));
+}
+
 function productImage(item) {
   if (!item.image) return `<div class="product-image placeholder">${item.category?.slice(0, 2) || "产品"}</div>`;
   return `<div class="product-image"><img src="${item.image}" alt="${item.name}" loading="lazy" /></div>`;
@@ -204,7 +230,9 @@ function renderModuleCard(item, type) {
   const priceNote = type === "service" ? "含每小时工程价格/台班价/项目报价" : type === "mall" ? "仅开放立即购买入口" : "支持购买价、小时租赁价、台班租赁价";
   const actions = type === "mall"
     ? `<button class="primary-button" data-open-login="buyer">立即购买</button>`
-    : `<button class="primary-button" data-open-login="buyer">${actionText}</button><button class="mini-button" data-open-login="buyer">${rentText}</button><button class="mini-button" data-open-login="buyer">发起询价</button>`;
+    : type === "equipment"
+      ? `<button class="primary-button" data-public-demand-item="${item.id}" data-demand-method="设备采购需求">发布设备采购需求</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="设备租赁需求">发布设备租赁需求</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="设备采购需求">发起询价</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="设备租赁需求">加入需求清单</button>`
+      : `<button class="primary-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">发布服务采购需求</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">发起询价</button><button class="mini-button" data-public-demand-item="${item.id}" data-demand-method="机械服务需求">加入需求清单</button>`;
   return `
     <article class="module-card">
       ${productImage(item)}
@@ -217,7 +245,7 @@ function renderModuleCard(item, type) {
         <span>参考价格</span><strong>${item.price}</strong>
         <span>适用场景</span><strong>${item.scenario || item.category}</strong>
         <span>核心参数</span><strong>${item.specs || item.description}</strong>
-        <span>交易能力</span><strong>${priceNote}</strong>
+        <span>业务逻辑</span><strong>${type === "mall" ? priceNote : "资源展示，发布需求后组织库内供应商报价"}</strong>
         <span>资料来源</span><strong>${item.tags || "平台数据"}</strong>
       </div>
       <div class="card-actions">
@@ -435,16 +463,20 @@ function renderResourceViews() {
 }
 
 function renderInternalCard(item, label) {
-  const type = label === "设备" ? "机械设备采购/租赁" : "机械服务采购";
-  const action = label === "设备" ? "办理采购/租赁" : "办理服务采购";
+  const isEquipment = label === "设备";
   return `
     <article class="card">
+      ${productImage(item)}
       <h3>${item.name}</h3>
       <div class="tags"><span class="tag">${label}</span><span class="tag">${item.category}</span><span class="tag">${item.region}</span></div>
       <p>${item.description}</p>
       <span>${item.supplier}</span>
       <b class="price">${item.price}</b>
-      <button class="primary-button" data-procure-item="${item.id}" data-procure-type="${type}">${action}</button>
+      <div class="card-actions">
+        ${isEquipment ? `<button class="primary-button" data-demand-item="${item.id}" data-demand-method="设备采购需求">发布设备采购需求</button><button class="mini-button" data-demand-item="${item.id}" data-demand-method="设备租赁需求">发布设备租赁需求</button>` : `<button class="primary-button" data-demand-item="${item.id}" data-demand-method="机械服务需求">发布服务采购需求</button>`}
+        <button class="mini-button" data-demand-item="${item.id}" data-demand-method="${isEquipment ? "设备采购需求" : "机械服务需求"}">发起询价</button>
+        <button class="mini-button" data-demand-item="${item.id}" data-demand-method="${isEquipment ? "设备租赁需求" : "机械服务需求"}">加入需求清单</button>
+      </div>
     </article>
   `;
 }
@@ -456,7 +488,7 @@ function renderDemands() {
       <td>${item.region}</td>
       <td>${item.method}</td>
       <td>${money(item.budget)}</td>
-      <td>${approvalText(item)}</td>
+      <td>${quoteSummary(item.id)}</td>
       <td><span class="status ${item.status === "待审核" ? "warn" : ""}">${executionText(item)}</span></td>
       <td>${demandActions(item)}</td>
     </tr>
@@ -470,6 +502,7 @@ function approvalText(item) {
 
 function executionText(item) {
   if (item.status === "已下单") return "已生成订单";
+  if (item.status === "报价中") return "库内供应商报价中";
   if (item.status === "已匹配") return "已批复，待下单";
   return item.status;
 }
@@ -534,8 +567,11 @@ function demandActions(item) {
   if (state.user.role === "admin") {
     return `<button class="mini-button" data-demand-approve="${item.id}">审核匹配</button>`;
   }
-  if (state.user.role === "buyer" && item.status !== "已下单" && item.matched !== "待管理员确认采购路径") {
-    return `<button class="mini-button" data-order-from="${item.id}">生成订单</button>`;
+  if (state.user.role === "buyer" && item.status !== "已下单") {
+    const count = state.quotes.filter((quote) => quote.demand_id === item.id).length;
+    if (count > 0) return `<button class="mini-button" data-order-from="${item.id}">比选确认供应商</button>`;
+    if (item.status === "报价中") return "<span class='tag'>等待供应商报价</span>";
+    if (item.matched !== "待管理员确认采购路径") return `<button class="mini-button" data-order-from="${item.id}">生成订单</button>`;
   }
   return "<span class='tag'>查看</span>";
 }
@@ -620,6 +656,36 @@ function showContract(orderId) {
   document.querySelector("#procurementDialog").showModal();
 }
 
+function openDemandFromResource(itemId, method) {
+  const item = itemById(itemId);
+  if (!item) {
+    alert("未找到设备或服务，请刷新页面后重试。");
+    return;
+  }
+  const form = document.querySelector("#demandForm");
+  form.reset();
+  form.source_item_id.value = item.id;
+  form.title.value = `${item.name}${method.replace("需求", "")}`;
+  form.region.value = item.region || "集团统筹";
+  form.category.value = [...form.category.options].some((option) => option.value === item.category) ? item.category : "生产经营机械";
+  form.method.value = method;
+  form.budget.value = amountNumber(item.price);
+  form.quantity.value = method === "机械服务需求" ? "按实际作业面积填写" : "1";
+  form.delivery_time.value = method === "机械服务需求" ? "计划开工时间待填" : "计划交付/进场时间待填";
+  form.work_condition.value = item.scenario || item.description;
+  form.hourly_price_ref.value = method === "机械服务需求" ? item.price : "";
+  form.need_operator.value = method === "设备租赁需求" ? "需要操作人员" : "";
+  form.need_transport.value = method === "设备采购需求" || method === "设备租赁需求" ? "需要运输/安装调试" : "";
+  form.description.value = `已选择资源：${item.name}\n供应商能力参考：${item.supplier}\n参数/服务说明：${item.specs || item.description}\n请补充项目地点、技术要求、服务周期、验收标准和附件资料。`;
+  document.querySelector("#demandDialog h2").textContent = method;
+  document.querySelector("#demandDialog").showModal();
+}
+
+function amountNumber(value) {
+  const digits = String(value || "").replace(/[^\d]/g, "");
+  return digits || "0";
+}
+
 document.querySelector("#loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   document.querySelector("#loginError").textContent = "";
@@ -628,6 +694,10 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
     const result = await api("/api/login", { method: "POST", body: JSON.stringify(data) });
     showApp(result.user);
     await loadState();
+    if (pendingDemandIntent && result.user.role === "buyer") {
+      openDemandFromResource(pendingDemandIntent.itemId, pendingDemandIntent.method);
+      pendingDemandIntent = null;
+    }
   } catch (error) {
     document.querySelector("#loginError").textContent = error.message;
   }
@@ -684,6 +754,7 @@ document.querySelector("#demandForm").addEventListener("submit", async (event) =
   await api("/api/demands", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) });
   event.currentTarget.reset();
   document.querySelector("#demandDialog").close();
+  document.querySelector("#demandDialog h2").textContent = "发布采购需求";
   await loadState();
   setView("demand");
 });
@@ -723,11 +794,30 @@ document.querySelector("#procurementForm").addEventListener("submit", async (eve
 
 document.addEventListener("click", async (event) => {
   const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
+  const equipmentFilter = event.target.closest("[data-equipment-filter]")?.dataset?.equipmentFilter;
+  const serviceFilter = event.target.closest("[data-service-filter]")?.dataset?.serviceFilter;
+  const publicDemandItem = event.target.closest("[data-public-demand-item]")?.dataset?.publicDemandItem;
   const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
   const openLogin = event.target.closest("[data-open-login]")?.dataset?.openLogin;
   if (mallFilter) {
     event.preventDefault();
     renderMallCategory(mallFilter);
+    return;
+  }
+  if (equipmentFilter) {
+    event.preventDefault();
+    renderEquipmentCategory(equipmentFilter);
+    return;
+  }
+  if (serviceFilter) {
+    event.preventDefault();
+    renderServiceCategory(serviceFilter);
+    return;
+  }
+  if (publicDemandItem) {
+    event.preventDefault();
+    pendingDemandIntent = { itemId: publicDemandItem, method: event.target.closest("[data-public-demand-item]")?.dataset?.demandMethod || "设备采购需求" };
+    showLogin("buyer");
     return;
   }
   if (publicView) {
@@ -747,6 +837,7 @@ document.addEventListener("click", async (event) => {
   const quoteDemand = event.target.dataset?.quoteDemand;
   const shortcutView = event.target.dataset?.shortcutView;
   const procureItem = event.target.dataset?.procureItem;
+  const demandItem = event.target.dataset?.demandItem;
   const contractOrder = event.target.dataset?.contractOrder;
   if (shortcutView) {
     setView(shortcutView);
@@ -754,6 +845,10 @@ document.addEventListener("click", async (event) => {
   }
   if (procureItem) {
     openProcurement(procureItem, event.target.dataset?.procureType || "内部采购");
+    return;
+  }
+  if (demandItem) {
+    openDemandFromResource(demandItem, event.target.dataset?.demandMethod || "设备采购需求");
     return;
   }
   if (contractOrder) {

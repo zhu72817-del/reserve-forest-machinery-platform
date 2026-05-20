@@ -86,7 +86,7 @@
       <div class="public-view" data-public-view="home" id="publicHome">
       <section class="portal-hero">
         <div>
-          <h1>储备林工程机械综合服务平台</h1>
+          <h1>中林集团面向储备林建设、森林防火、机械化营林装备一站式服务平台</h1>
           <p>面向储备林建设、森林防火、机械化营林和车辆装备采购的一站式内采服务平台。</p>
           <div class="portal-actions">
             <button class="ghost-button" data-public-view="mall">进入内采商城</button>
@@ -184,7 +184,7 @@
         <div class="module-layout">
           <aside class="module-side">
             <h3>设备分类</h3>
-            <button>土地整理设备</button><button>林地清理设备</button><button>造林营林设备</button><button>采伐集材设备</button><button>运输设备</button><button>无人机设备</button>
+            <button class="active" data-equipment-filter="全部">全部设备</button><button data-equipment-filter="土地整理设备">土地整理设备</button><button data-equipment-filter="林地清理设备">林地清理设备</button><button data-equipment-filter="造林营林设备">造林营林设备</button><button data-equipment-filter="采伐集材设备">采伐集材设备</button><button data-equipment-filter="运输设备">运输设备</button><button data-equipment-filter="无人机设备">无人机设备</button>
           </aside>
           <main>
             <div class="module-toolbar"><input type="search" placeholder="搜索设备、地区、品牌" /><button class="primary-button" data-open-login="buyer">发布设备需求</button></div>
@@ -205,7 +205,7 @@
         <div class="module-layout">
           <aside class="module-side">
             <h3>服务分类</h3>
-            <button>林地整理服务</button><button>机械化造林服务</button><button>林木抚育服务</button><button>采伐运输服务</button><button>轨道式集材服务</button><button>无人机作业服务</button>
+            <button class="active" data-service-filter="全部">全部服务</button><button data-service-filter="林地整理服务">林地整理服务</button><button data-service-filter="机械化造林服务">机械化造林服务</button><button data-service-filter="林木抚育服务">林木抚育服务</button><button data-service-filter="采伐运输服务">采伐运输服务</button><button data-service-filter="轨道式集材服务">轨道式集材服务</button><button data-service-filter="无人机作业服务">无人机作业服务</button><button data-service-filter="设备带人作业服务">设备带人作业服务</button>
           </aside>
           <main>
             <div class="module-toolbar"><input type="search" placeholder="搜索服务、地区、供应商" /><button class="primary-button" data-open-login="buyer">预约服务</button></div>
@@ -362,7 +362,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>项目</th><th>地区</th><th>采购方式</th><th>预算</th><th>批复/匹配</th><th>执行状态</th><th>操作</th></tr></thead>
+                <thead><tr><th>项目</th><th>地区</th><th>采购方式</th><th>预算</th><th>报价情况</th><th>执行状态</th><th>操作</th></tr></thead>
                 <tbody id="demandRows"></tbody>
               </table>
             </div>
@@ -421,16 +421,29 @@
     <dialog id="demandDialog">
       <form class="dialog-card" id="demandForm">
         <h2>发布采购需求</h2>
+        <input name="source_item_id" type="hidden" />
         <input name="title" required placeholder="需求名称" />
         <div class="form-grid">
-          <select name="region"><option>重庆</option><option>广西</option><option>雷林</option></select>
-            <select name="category"><option>森林防火装备</option><option>车辆装备</option><option>生产经营机械</option><option>无人机装备</option><option>土地整理设备</option><option>采伐运输服务</option></select>
+          <select name="region"><option>重庆</option><option>广西</option><option>雷林</option><option>集团统筹</option></select>
+          <select name="category"><option>森林防火装备</option><option>车辆装备</option><option>生产经营机械</option><option>无人机装备</option><option>土地整理设备</option><option>运输设备</option><option>采伐运输服务</option><option>机械化作业服务</option><option>设备租赁服务</option></select>
         </div>
         <div class="form-grid">
           <input name="budget" required type="number" placeholder="预算金额" />
-          <select name="method"><option>网上超市</option><option>协议供货</option><option>询价采购</option><option>竞价采购</option></select>
+          <select name="method"><option>设备采购需求</option><option>设备租赁需求</option><option>机械服务需求</option><option>询价采购</option><option>竞价采购</option><option>网上超市</option><option>协议供货</option></select>
         </div>
-        <textarea name="description" rows="4" placeholder="需求说明"></textarea>
+        <div class="form-grid">
+          <input name="quantity" placeholder="数量/作业面积，例如：2 台、500 亩" />
+          <input name="delivery_time" placeholder="交付/进场/开工时间" />
+        </div>
+        <div class="form-grid">
+          <input name="work_condition" placeholder="使用场景/地形条件/作业地点条件" />
+          <input name="hourly_price_ref" placeholder="每小时工程价格参考，可选" />
+        </div>
+        <div class="form-grid">
+          <select name="need_operator"><option value="">是否需要操作人员</option><option>需要操作人员</option><option>不需要操作人员</option></select>
+          <select name="need_transport"><option value="">是否需要运输/安装调试</option><option>需要运输/安装调试</option><option>不需要运输/安装调试</option></select>
+        </div>
+        <textarea name="description" rows="4" placeholder="技术要求、服务要求、验收标准、附件资料说明"></textarea>
         <menu><button class="ghost-button" type="button" data-close>取消</button><button class="primary-button">提交</button></menu>
       </form>
     </dialog>
