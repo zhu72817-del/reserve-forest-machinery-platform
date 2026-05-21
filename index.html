@@ -7,6 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2307863b'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3E林%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="config.js"></script>
   </head>
   <body>
     <section class="portal-page" id="portalPage">
@@ -261,7 +262,10 @@
             <p class="eyebrow">机械共享</p>
             <h1>中林集团机械设备共享调度</h1>
           </div>
-          <button class="primary-button" data-open-login="buyer">登录后申请租赁</button>
+          <div class="module-actions">
+            <button class="ghost-button" data-open-sharing-register>设备登记</button>
+            <button class="primary-button" data-open-login="buyer">登录后申请租赁</button>
+          </div>
         </div>
         <div id="sharingPublicRoot"></div>
       </section>
@@ -387,7 +391,10 @@
                 <h2>机械共享</h2>
                 <span>地图化查看集团内部机械资产，筛选空闲设备并发起内供租赁申请</span>
               </div>
-              <button class="mini-button" data-sharing-reset>恢复演示数据</button>
+              <div class="module-actions">
+                <button class="primary-button" data-open-sharing-register>设备登记</button>
+                <button class="mini-button" data-sharing-reset>恢复演示数据</button>
+              </div>
             </div>
             <div id="sharingAppRoot"></div>
           </section>
@@ -567,6 +574,52 @@
         <menu>
           <button class="ghost-button" type="button" data-close>取消</button>
           <button class="primary-button" type="submit">生成项目、订单和合同</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="sharingDeviceDialog">
+      <form class="dialog-card" id="sharingDeviceForm">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">机械共享</p>
+            <h2>设备登记入库</h2>
+          </div>
+          <button class="icon-close" type="button" data-close>×</button>
+        </div>
+        <div class="form-grid">
+          <input name="name" required placeholder="设备名称，例如：履带式挖掘机" />
+          <input name="model" required placeholder="型号，例如：PC200" />
+        </div>
+        <div class="form-grid">
+          <input name="company" required placeholder="权属公司，例如：重庆公司" />
+          <input name="gps" required placeholder="GPS 终端编号，例如：CQ-GPS-006" />
+        </div>
+        <div class="form-grid">
+          <select name="province"><option>重庆</option><option>广西</option><option>广东</option></select>
+          <input name="city" required placeholder="城市，例如：重庆、岑溪、湛江" />
+        </div>
+        <input name="address" required placeholder="设备当前位置/停放地址" />
+        <div class="form-grid">
+          <select name="status"><option>空闲中</option><option>使用中</option><option>维护中</option><option>出租中</option></select>
+          <input name="originalValue" placeholder="设备原值，例如：680000元" />
+        </div>
+        <div class="form-grid">
+          <input name="serviceRadius" placeholder="服务半径，例如：50公里" />
+          <input name="rentalPrice" placeholder="出租金额，例如：600元/小时" />
+        </div>
+        <div class="form-grid">
+          <input name="contact" placeholder="负责人及电话" />
+          <input name="renter" placeholder="承租单位，空闲设备可不填" />
+        </div>
+        <div class="form-grid">
+          <input name="lat" placeholder="纬度，可选；不填按城市模拟定位" />
+          <input name="lng" placeholder="经度，可选；不填按城市模拟定位" />
+        </div>
+        <textarea name="note" rows="3" placeholder="设备情况、出租条件、进场要求、服务能力说明"></textarea>
+        <menu>
+          <button class="ghost-button" type="button" data-close>取消</button>
+          <button class="primary-button" type="submit">提交入库</button>
         </menu>
       </form>
     </dialog>

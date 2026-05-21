@@ -611,7 +611,7 @@ button {
 .sharing-list-item {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 4px 8px;
+  gap: 5px 8px;
   width: 100%;
   padding: 11px;
   border: 1px solid var(--line);
@@ -631,6 +631,11 @@ button {
 
 .sharing-list-item span {
   color: var(--muted);
+  font-size: 12px;
+}
+
+.sharing-list-item small {
+  color: #607086;
   font-size: 12px;
 }
 

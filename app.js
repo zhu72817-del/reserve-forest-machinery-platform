@@ -12,11 +12,15 @@ const state = {
 let pendingDemandIntent = null;
 let sharingProvince = "全部";
 let sharingStatus = "全部";
+let sharingKeyword = "";
 let selectedSharingId = "SH-001";
 let sharingLeaseLogs = [];
 const sharingMaps = {};
+const SHARING_STORAGE_KEY = "forestMachinerySharingDevices";
+const SHARING_VERSION_KEY = "forestMachinerySharingVersion";
+const SHARING_DATA_VERSION = "2026-05-21-v2";
 
-const sharingDevices = [
+const defaultSharingDevices = [
   {
     id: "SH-001",
     name: "履带式挖掘机",
@@ -34,6 +38,8 @@ const sharingDevices = [
     coords: [29.5630, 106.5516],
     lastUpdate: "10分钟前",
     fence: "重庆储备林项目作业半径 5 公里",
+    serviceRadius: "80公里",
+    rentalPrice: "600元/小时",
     note: "该设备属于重庆公司，当前正租赁给岑溪公司，出租期间双方均可查看实时位置。",
   },
   {
@@ -53,6 +59,8 @@ const sharingDevices = [
     coords: [22.9184, 110.9949],
     lastUpdate: "18分钟前",
     fence: "岑溪储备林项目部方圆 5 公里",
+    serviceRadius: "50公里",
+    rentalPrice: "1200元/台班",
     note: "该设备属于岑溪公司，当前空闲，可供集团内部单位申请内供租赁。",
   },
   {
@@ -72,6 +80,8 @@ const sharingDevices = [
     coords: [29.4316, 106.9123],
     lastUpdate: "22分钟前",
     fence: "重庆公司作业区",
+    serviceRadius: "60公里",
+    rentalPrice: "900元/台班",
     note: "该设备属于重庆公司，当前本单位自用，暂不可跨单位租赁。",
   },
   {
@@ -91,6 +101,8 @@ const sharingDevices = [
     coords: [22.9284, 111.0050],
     lastUpdate: "30分钟前",
     fence: "岑溪维修基地",
+    serviceRadius: "30公里",
+    rentalPrice: "15000元/台",
     note: "该设备属于岑溪公司，正在维保，完成保养后可重新进入共享池。",
   },
   {
@@ -110,9 +122,31 @@ const sharingDevices = [
     coords: [20.9144, 110.0967],
     lastUpdate: "12分钟前",
     fence: "雷州北坡林场设备仓",
+    serviceRadius: "100公里",
+    rentalPrice: "按项目报价",
     note: "该设备属于雷州林业局北坡林场，适用于山地木材集材和短驳，可申请跨区域租赁。",
   },
 ];
+let sharingDevices = loadSharingDevices();
+
+function loadSharingDevices() {
+  try {
+    if (localStorage.getItem(SHARING_VERSION_KEY) !== SHARING_DATA_VERSION) {
+      localStorage.removeItem(SHARING_STORAGE_KEY);
+      localStorage.setItem(SHARING_VERSION_KEY, SHARING_DATA_VERSION);
+    }
+    const stored = JSON.parse(localStorage.getItem(SHARING_STORAGE_KEY) || "null");
+    if (Array.isArray(stored) && stored.length) return stored;
+  } catch (error) {
+    console.warn("共享设备本地数据读取失败", error);
+  }
+  return defaultSharingDevices.map((item) => ({ ...item }));
+}
+
+function saveSharingDevices() {
+  localStorage.setItem(SHARING_VERSION_KEY, SHARING_DATA_VERSION);
+  localStorage.setItem(SHARING_STORAGE_KEY, JSON.stringify(sharingDevices));
+}
 
 const views = ["home", "mall", "equipment", "serviceDesk", "sharing", "demand", "quote", "order", "admin", "log"];
 const roleTitle = {
@@ -595,6 +629,9 @@ function renderSharingPlatform(scope = "public") {
     <div class="sharing-shell">
       <aside class="sharing-sidebar">
         <div class="sharing-search">
+          <label>关键词
+            <input data-sharing-keyword type="search" value="${sharingKeyword}" placeholder="设备、公司、城市、GPS" />
+          </label>
           <label>省份/城市
             <select data-sharing-province>
               ${["全部", "重庆", "广西", "广东"].map((name) => `<option ${sharingProvince === name ? "selected" : ""}>${name}</option>`).join("")}
@@ -617,6 +654,7 @@ function renderSharingPlatform(scope = "public") {
             <button class="sharing-list-item ${statusClass(item.status)} ${item.id === selectedSharingId ? "active" : ""}" data-share-device="${item.id}">
               <strong>${item.name}</strong>
               <span>${item.company} · ${item.city}</span>
+              <small>${item.rentalPrice || "租金待填"} · 半径 ${item.serviceRadius || "待填"}</small>
               <em class="share-status ${statusClass(item.status)}">${item.status}</em>
             </button>
           `).join("") || "<div class='empty-state'>当前筛选条件下暂无设备</div>"}
@@ -631,10 +669,11 @@ function renderSharingPlatform(scope = "public") {
           <button class="mini-button" data-sharing-province-jump="广西">定位广西</button>
           <button class="mini-button" data-sharing-province-jump="重庆">定位重庆</button>
           <button class="mini-button" data-sharing-province-jump="广东">定位广东</button>
+          <button class="primary-button" data-open-sharing-register>设备登记</button>
         </div>
         <div class="real-map-wrap">
           <div class="real-map" id="sharingMap-${scope}"></div>
-          <div class="map-fallback">真实地图加载中。如现场网络限制导致底图不可用，设备点位和详情仍可通过左侧列表查看。</div>
+          <div class="map-fallback">高德地图加载中。如现场网络限制导致底图不可用，设备点位和详情仍可通过左侧列表查看。</div>
         </div>
       </main>
       <aside class="sharing-detail">
@@ -659,10 +698,11 @@ function initSharingMap(scope, devices) {
   const center = sharingProvince === "广东" ? [21.2, 110.2] : sharingProvince === "广西" ? [22.95, 111.0] : sharingProvince === "重庆" ? [29.56, 106.55] : [25.9, 108.8];
   const zoom = sharingProvince === "全部" ? 7 : 8;
   const map = L.map(container, { zoomControl: true, attributionControl: false }).setView(center, zoom);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer("https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}", {
+    subdomains: "1234",
     maxZoom: 18,
   }).addTo(map);
-  L.control.attribution({ prefix: "" }).addAttribution("© OpenStreetMap").addTo(map);
+  L.control.attribution({ prefix: "" }).addAttribution("高德地图").addTo(map);
   devices.forEach((item) => {
     const marker = L.circleMarker(item.coords, {
       radius: item.id === selectedSharingId ? 11 : 9,
@@ -676,6 +716,8 @@ function initSharingMap(scope, devices) {
       <strong>${item.name}</strong><br>
       ${item.company} · ${item.city}<br>
       状态：${item.status}<br>
+      租金：${item.rentalPrice || "待填"}<br>
+      服务半径：${item.serviceRadius || "待填"}<br>
       负责人：${item.contact}
     `);
     marker.on("click", () => {
@@ -707,6 +749,8 @@ function renderSharingDetail(item, scope) {
         <span>GPS 编号</span><strong>${item.gps}</strong>
         <span>设备原值</span><strong>${item.originalValue}</strong>
         <span>负责人</span><strong>${item.contact}</strong>
+        <span>服务半径</span><strong>${item.serviceRadius || "待填"}</strong>
+        <span>出租金额</span><strong>${item.rentalPrice || "待填"}</strong>
         <span>更新时间</span><strong>${item.lastUpdate}</strong>
         <span>电子围栏</span><strong>${item.fence}</strong>
         <span>承租单位</span><strong>${item.renter || "暂无"}</strong>
@@ -733,10 +777,12 @@ function renderSharingLeaseLogs() {
 }
 
 function filteredSharingDevices() {
+  const keyword = sharingKeyword.trim();
   return sharingDevices.filter((item) => {
-    const provinceOK = sharingProvince === "全部" || item.province === sharingProvince;
+    const provinceOK = sharingProvince === "全部" || item.province === sharingProvince || item.city === sharingProvince;
     const statusOK = sharingStatus === "全部" || item.status === sharingStatus;
-    return provinceOK && statusOK;
+    const keywordOK = !keyword || [item.name, item.model, item.company, item.city, item.address, item.gps, item.status].join("").includes(keyword);
+    return provinceOK && statusOK && keywordOK;
   });
 }
 
@@ -758,6 +804,54 @@ function statusColor(status) {
   }[status] || "#16a34a";
 }
 
+function openSharingRegister() {
+  const form = document.querySelector("#sharingDeviceForm");
+  form.reset();
+  form.company.value = state.user?.org || "重庆公司";
+  form.status.value = "空闲中";
+  form.serviceRadius.value = "50公里";
+  form.rentalPrice.value = "按台班计价";
+  form.originalValue.value = "";
+  document.querySelector("#sharingDeviceDialog").showModal();
+}
+
+function cityCoords(province, city) {
+  const text = `${province}${city}`;
+  if (text.includes("重庆")) return [29.5630, 106.5516];
+  if (text.includes("岑溪")) return [22.9184, 110.9949];
+  if (text.includes("南宁")) return [22.8170, 108.3669];
+  if (text.includes("柳州")) return [24.3264, 109.4281];
+  if (text.includes("湛江") || text.includes("雷州")) return [21.2707, 110.3594];
+  return [25.9, 108.8];
+}
+
+function createSharingDevice(data) {
+  const lat = Number(data.lat);
+  const lng = Number(data.lng);
+  const coords = Number.isFinite(lat) && Number.isFinite(lng) && lat && lng ? [lat, lng] : cityCoords(data.province, data.city);
+  return {
+    id: `SH-${Date.now()}`,
+    name: data.name,
+    model: data.model,
+    company: data.company,
+    gps: data.gps,
+    originalValue: data.originalValue || "未填写",
+    status: data.status || "空闲中",
+    province: data.province,
+    city: data.city,
+    address: data.address,
+    contact: data.contact || `${data.company} 联系人待补充`,
+    renter: data.status === "出租中" ? (data.renter || "承租单位待补充") : "",
+    position: [50, 50],
+    coords,
+    lastUpdate: "刚刚",
+    fence: `${data.city}作业服务半径 ${data.serviceRadius || "待填"}`,
+    serviceRadius: data.serviceRadius || "待填",
+    rentalPrice: data.rentalPrice || "待填",
+    note: data.note || `该设备属于${data.company}，已登记进入机械共享库。`,
+  };
+}
+
 function applySharingLease(deviceId) {
   const item = sharingDevices.find((device) => device.id === deviceId);
   if (!item || item.status !== "空闲中") return;
@@ -765,6 +859,7 @@ function applySharingLease(deviceId) {
   item.renter = state.user?.org || "当前采购单位";
   item.note = `已生成内部租赁单，${item.company}审批通过后出租给${item.renter}，双方拥有地图实时查看权限。`;
   item.lastUpdate = "刚刚";
+  saveSharingDevices();
   sharingLeaseLogs.unshift(`${item.name}｜${item.renter} 已提交内供租赁申请，状态变更为出租中`);
   sharingLeaseLogs = sharingLeaseLogs.slice(0, 3);
   selectedSharingId = item.id;
@@ -772,22 +867,12 @@ function applySharingLease(deviceId) {
 }
 
 function resetSharingDemo() {
-  sharingDevices.forEach((item) => {
-    if (item.id === "SH-001") {
-      item.status = "出租中";
-      item.renter = "岑溪公司";
-      item.note = "该设备属于重庆公司，当前正租赁给岑溪公司，出租期间双方均可查看实时位置。";
-      item.lastUpdate = "10分钟前";
-    }
-    if (item.id === "SH-002" || item.id === "SH-005") {
-      item.status = "空闲中";
-      item.renter = "";
-      item.lastUpdate = item.id === "SH-002" ? "18分钟前" : "12分钟前";
-    }
-    if (item.id === "SH-003") item.status = "使用中";
-    if (item.id === "SH-004") item.status = "维护中";
-  });
+  sharingDevices = defaultSharingDevices.map((item) => ({ ...item }));
+  saveSharingDevices();
   sharingLeaseLogs = [];
+  sharingProvince = "全部";
+  sharingStatus = "全部";
+  sharingKeyword = "";
   selectedSharingId = "SH-001";
   renderSharingPlatform("app");
 }
@@ -1122,6 +1207,21 @@ document.querySelector("#procurementForm").addEventListener("submit", async (eve
   setView("order");
 });
 
+document.querySelector("#sharingDeviceForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget));
+  const device = createSharingDevice(data);
+  sharingDevices.unshift(device);
+  selectedSharingId = device.id;
+  sharingProvince = data.province || "全部";
+  sharingStatus = "全部";
+  sharingKeyword = "";
+  saveSharingDevices();
+  event.currentTarget.reset();
+  document.querySelector("#sharingDeviceDialog").close();
+  renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+});
+
 document.addEventListener("change", (event) => {
   const provinceSelect = event.target.closest("[data-sharing-province]");
   const statusSelect = event.target.closest("[data-sharing-status]");
@@ -1137,6 +1237,14 @@ document.addEventListener("change", (event) => {
   }
 });
 
+document.addEventListener("input", (event) => {
+  const keywordInput = event.target.closest("[data-sharing-keyword]");
+  if (!keywordInput) return;
+  sharingKeyword = keywordInput.value;
+  selectedSharingId = filteredSharingDevices()[0]?.id || selectedSharingId;
+  renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+});
+
 document.addEventListener("click", async (event) => {
   const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
   const mallFocus = event.target.closest("[data-mall-focus]")?.dataset?.mallFocus;
@@ -1146,6 +1254,7 @@ document.addEventListener("click", async (event) => {
   const shareLease = event.target.closest("[data-share-lease]")?.dataset?.shareLease;
   const shareProvinceJump = event.target.closest("[data-sharing-province-jump]")?.dataset?.sharingProvinceJump;
   const shareReset = event.target.closest("[data-sharing-reset]");
+  const shareRegister = event.target.closest("[data-open-sharing-register]");
   const publicDemandItem = event.target.closest("[data-public-demand-item]")?.dataset?.publicDemandItem;
   const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
   const openLogin = event.target.closest("[data-open-login]")?.dataset?.openLogin;
@@ -1190,6 +1299,11 @@ document.addEventListener("click", async (event) => {
   if (shareReset) {
     event.preventDefault();
     resetSharingDemo();
+    return;
+  }
+  if (shareRegister) {
+    event.preventDefault();
+    openSharingRegister();
     return;
   }
   if (publicDemandItem) {
