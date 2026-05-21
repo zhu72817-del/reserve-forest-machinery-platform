@@ -10,8 +10,111 @@ const state = {
   view: "home",
 };
 let pendingDemandIntent = null;
+let sharingProvince = "全部";
+let sharingStatus = "全部";
+let selectedSharingId = "SH-001";
+let sharingLeaseLogs = [];
+const sharingMaps = {};
 
-const views = ["home", "mall", "equipment", "serviceDesk", "demand", "quote", "order", "admin", "log"];
+const sharingDevices = [
+  {
+    id: "SH-001",
+    name: "履带式挖掘机",
+    model: "PC200",
+    company: "重庆公司",
+    gps: "CQ-GPS-001",
+    originalValue: "680,000元",
+    status: "出租中",
+    province: "重庆",
+    city: "重庆",
+    address: "重庆市储备林山地机械调度点",
+    contact: "重庆公司 13800000001",
+    renter: "岑溪公司",
+    position: [38, 55],
+    coords: [29.5630, 106.5516],
+    lastUpdate: "10分钟前",
+    fence: "重庆储备林项目作业半径 5 公里",
+    note: "该设备属于重庆公司，当前正租赁给岑溪公司，出租期间双方均可查看实时位置。",
+  },
+  {
+    id: "SH-002",
+    name: "汽车起重机",
+    model: "QY25K",
+    company: "岑溪公司",
+    gps: "CX-GPS-002",
+    originalValue: "880,000元",
+    status: "空闲中",
+    province: "广西",
+    city: "岑溪",
+    address: "广西壮族自治区岑溪市储备林项目部",
+    contact: "岑溪公司 13800000002",
+    renter: "",
+    position: [56, 62],
+    coords: [22.9184, 110.9949],
+    lastUpdate: "18分钟前",
+    fence: "岑溪储备林项目部方圆 5 公里",
+    note: "该设备属于岑溪公司，当前空闲，可供集团内部单位申请内供租赁。",
+  },
+  {
+    id: "SH-003",
+    name: "装载机",
+    model: "ZL50",
+    company: "重庆公司",
+    gps: "CQ-GPS-003",
+    originalValue: "420,000元",
+    status: "使用中",
+    province: "重庆",
+    city: "重庆",
+    address: "重庆市储备林林区道路整备工地",
+    contact: "重庆公司 13800000003",
+    renter: "",
+    position: [43, 68],
+    coords: [29.4316, 106.9123],
+    lastUpdate: "22分钟前",
+    fence: "重庆公司作业区",
+    note: "该设备属于重庆公司，当前本单位自用，暂不可跨单位租赁。",
+  },
+  {
+    id: "SH-004",
+    name: "山地履带运输车",
+    model: "2吨手扶式",
+    company: "岑溪公司",
+    gps: "CX-GPS-004",
+    originalValue: "15,000元",
+    status: "维护中",
+    province: "广西",
+    city: "岑溪",
+    address: "广西壮族自治区岑溪市机械维修保养点",
+    contact: "岑溪公司 13800000004",
+    renter: "",
+    position: [62, 48],
+    coords: [22.9284, 111.0050],
+    lastUpdate: "30分钟前",
+    fence: "岑溪维修基地",
+    note: "该设备属于岑溪公司，正在维保，完成保养后可重新进入共享池。",
+  },
+  {
+    id: "SH-005",
+    name: "轨道式集材系统",
+    model: "山地集材成套",
+    company: "雷州林业局 北坡林场",
+    gps: "LZ-GPS-005",
+    originalValue: "1,260,000元",
+    status: "空闲中",
+    province: "广东",
+    city: "湛江",
+    address: "广东省湛江市雷州北坡林场储备林设备仓",
+    contact: "北坡林场 13800000005",
+    renter: "",
+    position: [34, 42],
+    coords: [20.9144, 110.0967],
+    lastUpdate: "12分钟前",
+    fence: "雷州北坡林场设备仓",
+    note: "该设备属于雷州林业局北坡林场，适用于山地木材集材和短驳，可申请跨区域租赁。",
+  },
+];
+
+const views = ["home", "mall", "equipment", "serviceDesk", "sharing", "demand", "quote", "order", "admin", "log"];
 const roleTitle = {
   buyer: ["需求方工作台", "提需求、选服务、下订单、做验收"],
   supplier: ["供应商工作台", "上架资源、响应报价、推进履约"],
@@ -20,7 +123,7 @@ const roleTitle = {
 const roleMenus = {
   buyer: [
     ["工作台", [["home", "首页"], ["log", "操作记录"]]],
-    ["采购业务", [["mall", "内采商城"], ["equipment", "机械设备库"], ["serviceDesk", "机械设备服务库"], ["demand", "我的项目"], ["order", "订单与验收"]]],
+    ["采购业务", [["mall", "内采商城"], ["equipment", "机械设备"], ["serviceDesk", "机械服务"], ["sharing", "机械共享"], ["demand", "我的项目"], ["order", "订单与验收"]]],
   ],
   supplier: [
     ["工作台", [["home", "首页"], ["log", "操作记录"]]],
@@ -28,7 +131,7 @@ const roleMenus = {
   ],
   admin: [
     ["工作台", [["home", "首页"], ["admin", "待办审核"], ["log", "操作日志"]]],
-    ["资源管理", [["mall", "资源目录管理"]]],
+    ["资源管理", [["mall", "资源目录管理"], ["sharing", "机械共享"]]],
     ["采购监管", [["demand", "需求监管"], ["quote", "询价报价监管"], ["order", "订单监管"]]],
   ],
 };
@@ -149,6 +252,7 @@ function renderPublic() {
     </article>
   `).join("");
   renderPublicModules(data);
+  renderSharingPlatform("public");
 }
 
 function renderPublicModules(data) {
@@ -171,6 +275,7 @@ function renderPublicModules(data) {
       <div class="card-actions"><button class="mini-button" data-open-login="buyer">查看企业</button><button class="mini-button" data-open-login="buyer">发起询价</button></div>
     </article>
   `).join("");
+  renderSharingPlatform("public");
 }
 
 let currentMallCategory = "森林防火装备";
@@ -281,6 +386,7 @@ function showPublicView(view = "home") {
   document.querySelectorAll(".portal-link").forEach((button) => {
     button.classList.toggle("active", button.dataset.publicView === view);
   });
+  if (view === "sharing") renderSharingPlatform("public");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -339,6 +445,7 @@ function render() {
   renderOrders();
   renderAdmin();
   renderLogs();
+  renderSharingPlatform("app");
   applyRole();
 }
 
@@ -423,7 +530,7 @@ function getShortcuts(role) {
   if (role === "supplier") {
     return [["新增资源上架", "mall", "primary"], ["查看可响应需求", "quote"], ["查看履约订单", "order"], ["查看操作记录", "log"]];
   }
-  return [["进入内采商城", "mall", "primary"], ["查看机械设备库", "equipment"], ["查看机械设备服务库", "serviceDesk"], ["查看我的项目", "demand"]];
+  return [["进入内采商城", "mall", "primary"], ["查看机械设备", "equipment"], ["查看机械服务", "serviceDesk"], ["打开共享地图", "sharing"], ["查看我的项目", "demand"]];
 }
 
 function renderRoleGuide() {
@@ -476,6 +583,213 @@ function renderResourceViews() {
   const services = state.items.filter((item) => item.status === "上架" && (item.channel.includes("服务") || item.category.includes("服务")));
   document.querySelector("#equipmentCards").innerHTML = equipment.map((item) => renderInternalCard(item, "设备")).join("");
   document.querySelector("#serviceDeskCards").innerHTML = services.map((item) => renderInternalCard(item, "服务")).join("");
+}
+
+function renderSharingPlatform(scope = "public") {
+  const root = document.querySelector(scope === "app" ? "#sharingAppRoot" : "#sharingPublicRoot");
+  if (!root) return;
+  const devices = filteredSharingDevices();
+  const selected = sharingDevices.find((item) => item.id === selectedSharingId) || devices[0] || sharingDevices[0];
+  if (selected) selectedSharingId = selected.id;
+  root.innerHTML = `
+    <div class="sharing-shell">
+      <aside class="sharing-sidebar">
+        <div class="sharing-search">
+          <label>省份/城市
+            <select data-sharing-province>
+              ${["全部", "重庆", "广西", "广东"].map((name) => `<option ${sharingProvince === name ? "selected" : ""}>${name}</option>`).join("")}
+            </select>
+          </label>
+          <label>设备状态
+            <select data-sharing-status>
+              ${["全部", "空闲中", "使用中", "维护中", "出租中"].map((name) => `<option ${sharingStatus === name ? "selected" : ""}>${name}</option>`).join("")}
+            </select>
+          </label>
+          <div class="sharing-legend">
+            <span><i class="dot idle"></i>空闲中</span>
+            <span><i class="dot using"></i>使用中</span>
+            <span><i class="dot maintenance"></i>维护中</span>
+            <span><i class="dot rented"></i>出租中</span>
+          </div>
+        </div>
+        <div class="sharing-list">
+          ${devices.map((item) => `
+            <button class="sharing-list-item ${statusClass(item.status)} ${item.id === selectedSharingId ? "active" : ""}" data-share-device="${item.id}">
+              <strong>${item.name}</strong>
+              <span>${item.company} · ${item.city}</span>
+              <em class="share-status ${statusClass(item.status)}">${item.status}</em>
+            </button>
+          `).join("") || "<div class='empty-state'>当前筛选条件下暂无设备</div>"}
+        </div>
+      </aside>
+      <main class="sharing-map">
+        <div class="map-toolbar">
+          <div>
+            <strong>设备共享地图</strong>
+            <span>装备可视化地图</span>
+          </div>
+          <button class="mini-button" data-sharing-province-jump="广西">定位广西</button>
+          <button class="mini-button" data-sharing-province-jump="重庆">定位重庆</button>
+          <button class="mini-button" data-sharing-province-jump="广东">定位广东</button>
+        </div>
+        <div class="real-map-wrap">
+          <div class="real-map" id="sharingMap-${scope}"></div>
+          <div class="map-fallback">真实地图加载中。如现场网络限制导致底图不可用，设备点位和详情仍可通过左侧列表查看。</div>
+        </div>
+      </main>
+      <aside class="sharing-detail">
+        ${renderSharingDetail(selected, scope)}
+      </aside>
+    </div>
+  `;
+  window.setTimeout(() => initSharingMap(scope, devices), 0);
+}
+
+function initSharingMap(scope, devices) {
+  const container = document.querySelector(`#sharingMap-${scope}`);
+  if (!container) return;
+  if (!window.L) {
+    container.classList.add("map-unavailable");
+    return;
+  }
+  if (sharingMaps[scope]) {
+    sharingMaps[scope].remove();
+    sharingMaps[scope] = null;
+  }
+  const center = sharingProvince === "广东" ? [21.2, 110.2] : sharingProvince === "广西" ? [22.95, 111.0] : sharingProvince === "重庆" ? [29.56, 106.55] : [25.9, 108.8];
+  const zoom = sharingProvince === "全部" ? 7 : 8;
+  const map = L.map(container, { zoomControl: true, attributionControl: false }).setView(center, zoom);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+  }).addTo(map);
+  L.control.attribution({ prefix: "" }).addAttribution("© OpenStreetMap").addTo(map);
+  devices.forEach((item) => {
+    const marker = L.circleMarker(item.coords, {
+      radius: item.id === selectedSharingId ? 11 : 9,
+      color: "#fff",
+      weight: 3,
+      fillColor: statusColor(item.status),
+      fillOpacity: 0.96,
+    }).addTo(map);
+    marker.bindTooltip(`${item.name}｜${item.status}`, { direction: "top", offset: [0, -8] });
+    marker.bindPopup(`
+      <strong>${item.name}</strong><br>
+      ${item.company} · ${item.city}<br>
+      状态：${item.status}<br>
+      负责人：${item.contact}
+    `);
+    marker.on("click", () => {
+      selectedSharingId = item.id;
+      renderSharingPlatform(scope);
+    });
+  });
+  if (devices.length > 1 && sharingProvince === "全部") {
+    const bounds = L.latLngBounds(devices.map((item) => item.coords));
+    map.fitBounds(bounds.pad(0.24));
+  }
+  sharingMaps[scope] = map;
+  window.setTimeout(() => map.invalidateSize(), 80);
+}
+
+function renderSharingDetail(item, scope) {
+  if (!item) return "<div class='empty-state'>请选择设备</div>";
+  const canLease = item.status === "空闲中";
+  const leaseButton = scope === "public"
+    ? `<button class="primary-button" data-open-login="buyer">登录后申请租赁</button>`
+    : `<button class="primary-button" data-share-lease="${item.id}" ${canLease ? "" : "disabled"}>${canLease ? "申请内供租赁" : "当前不可租赁"}</button>`;
+  return `
+    <div class="detail-card">
+      <p class="eyebrow">设备详情</p>
+      <h3>${item.name}</h3>
+      <div class="tags"><span class="tag">${item.model}</span><span class="tag">${item.company}</span><span class="share-status ${statusClass(item.status)}">${item.status}</span></div>
+      <div class="detail-grid">
+        <span>实时位置</span><strong>${item.address}</strong>
+        <span>GPS 编号</span><strong>${item.gps}</strong>
+        <span>设备原值</span><strong>${item.originalValue}</strong>
+        <span>负责人</span><strong>${item.contact}</strong>
+        <span>更新时间</span><strong>${item.lastUpdate}</strong>
+        <span>电子围栏</span><strong>${item.fence}</strong>
+        <span>承租单位</span><strong>${item.renter || "暂无"}</strong>
+      </div>
+      <p class="sharing-note">${item.note}</p>
+      ${leaseButton}
+      <div class="sharing-flow">
+        <strong>内供租赁闭环</strong>
+        <span>申请租赁</span><span>权属公司审批</span><span>状态变更出租中</span><span>双方地图可见</span><span>履约归还归档</span>
+      </div>
+      ${renderSharingLeaseLogs()}
+    </div>
+  `;
+}
+
+function renderSharingLeaseLogs() {
+  if (!sharingLeaseLogs.length) return "";
+  return `
+    <div class="lease-log">
+      <strong>最近租赁单</strong>
+      ${sharingLeaseLogs.map((item) => `<p>${item}</p>`).join("")}
+    </div>
+  `;
+}
+
+function filteredSharingDevices() {
+  return sharingDevices.filter((item) => {
+    const provinceOK = sharingProvince === "全部" || item.province === sharingProvince;
+    const statusOK = sharingStatus === "全部" || item.status === sharingStatus;
+    return provinceOK && statusOK;
+  });
+}
+
+function statusClass(status) {
+  return {
+    空闲中: "idle",
+    使用中: "using",
+    维护中: "maintenance",
+    出租中: "rented",
+  }[status] || "idle";
+}
+
+function statusColor(status) {
+  return {
+    空闲中: "#16a34a",
+    使用中: "#2563eb",
+    维护中: "#f59e0b",
+    出租中: "#dc2626",
+  }[status] || "#16a34a";
+}
+
+function applySharingLease(deviceId) {
+  const item = sharingDevices.find((device) => device.id === deviceId);
+  if (!item || item.status !== "空闲中") return;
+  item.status = "出租中";
+  item.renter = state.user?.org || "当前采购单位";
+  item.note = `已生成内部租赁单，${item.company}审批通过后出租给${item.renter}，双方拥有地图实时查看权限。`;
+  item.lastUpdate = "刚刚";
+  sharingLeaseLogs.unshift(`${item.name}｜${item.renter} 已提交内供租赁申请，状态变更为出租中`);
+  sharingLeaseLogs = sharingLeaseLogs.slice(0, 3);
+  selectedSharingId = item.id;
+  renderSharingPlatform("app");
+}
+
+function resetSharingDemo() {
+  sharingDevices.forEach((item) => {
+    if (item.id === "SH-001") {
+      item.status = "出租中";
+      item.renter = "岑溪公司";
+      item.note = "该设备属于重庆公司，当前正租赁给岑溪公司，出租期间双方均可查看实时位置。";
+      item.lastUpdate = "10分钟前";
+    }
+    if (item.id === "SH-002" || item.id === "SH-005") {
+      item.status = "空闲中";
+      item.renter = "";
+      item.lastUpdate = item.id === "SH-002" ? "18分钟前" : "12分钟前";
+    }
+    if (item.id === "SH-003") item.status = "使用中";
+    if (item.id === "SH-004") item.status = "维护中";
+  });
+  sharingLeaseLogs = [];
+  selectedSharingId = "SH-001";
+  renderSharingPlatform("app");
 }
 
 function renderInternalCard(item, label) {
@@ -808,11 +1122,30 @@ document.querySelector("#procurementForm").addEventListener("submit", async (eve
   setView("order");
 });
 
+document.addEventListener("change", (event) => {
+  const provinceSelect = event.target.closest("[data-sharing-province]");
+  const statusSelect = event.target.closest("[data-sharing-status]");
+  if (provinceSelect) {
+    sharingProvince = provinceSelect.value;
+    selectedSharingId = filteredSharingDevices()[0]?.id || selectedSharingId;
+    renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+  }
+  if (statusSelect) {
+    sharingStatus = statusSelect.value;
+    selectedSharingId = filteredSharingDevices()[0]?.id || selectedSharingId;
+    renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+  }
+});
+
 document.addEventListener("click", async (event) => {
   const mallFilter = event.target.closest("[data-mall-filter]")?.dataset?.mallFilter;
   const mallFocus = event.target.closest("[data-mall-focus]")?.dataset?.mallFocus;
   const equipmentFilter = event.target.closest("[data-equipment-filter]")?.dataset?.equipmentFilter;
   const serviceFilter = event.target.closest("[data-service-filter]")?.dataset?.serviceFilter;
+  const shareDevice = event.target.closest("[data-share-device]")?.dataset?.shareDevice;
+  const shareLease = event.target.closest("[data-share-lease]")?.dataset?.shareLease;
+  const shareProvinceJump = event.target.closest("[data-sharing-province-jump]")?.dataset?.sharingProvinceJump;
+  const shareReset = event.target.closest("[data-sharing-reset]");
   const publicDemandItem = event.target.closest("[data-public-demand-item]")?.dataset?.publicDemandItem;
   const publicView = event.target.closest("[data-public-view]")?.dataset?.publicView;
   const openLogin = event.target.closest("[data-open-login]")?.dataset?.openLogin;
@@ -834,6 +1167,29 @@ document.addEventListener("click", async (event) => {
   if (serviceFilter) {
     event.preventDefault();
     renderServiceCategory(serviceFilter);
+    return;
+  }
+  if (shareDevice) {
+    event.preventDefault();
+    selectedSharingId = shareDevice;
+    renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+    return;
+  }
+  if (shareLease) {
+    event.preventDefault();
+    applySharingLease(shareLease);
+    return;
+  }
+  if (shareProvinceJump) {
+    event.preventDefault();
+    sharingProvince = shareProvinceJump;
+    selectedSharingId = filteredSharingDevices()[0]?.id || selectedSharingId;
+    renderSharingPlatform(state.view === "sharing" && state.user ? "app" : "public");
+    return;
+  }
+  if (shareReset) {
+    event.preventDefault();
+    resetSharingDemo();
     return;
   }
   if (publicDemandItem) {

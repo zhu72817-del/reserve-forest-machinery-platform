@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>林业机械综合服务平台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2307863b'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3E林%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -33,7 +34,7 @@
             </div>
           </div>
           <div class="nav-menu">
-            <button class="portal-link" data-public-view="equipment">机械设备库</button>
+            <button class="portal-link" data-public-view="equipment">机械设备</button>
             <div class="mega-menu narrow">
               <section>
                 <h3>工程设备</h3>
@@ -46,7 +47,7 @@
             </div>
           </div>
           <div class="nav-menu">
-            <button class="portal-link" data-public-view="service">机械服务库</button>
+            <button class="portal-link" data-public-view="service">机械服务</button>
             <div class="mega-menu">
               <section>
                 <h3>土地平整服务</h3>
@@ -59,6 +60,19 @@
               <section>
                 <h3>采伐运输服务</h3>
                 <button data-public-view="service">机械采伐</button><button data-public-view="service">木材集材</button><button data-public-view="service">木材短驳</button><button data-public-view="service">山地运输</button>
+              </section>
+            </div>
+          </div>
+          <div class="nav-menu">
+            <button class="portal-link" data-public-view="sharing">机械共享</button>
+            <div class="mega-menu narrow">
+              <section>
+                <h3>地图看板</h3>
+                <button data-public-view="sharing">华南大区</button><button data-public-view="sharing">广东设备</button><button data-public-view="sharing">广西设备</button><button data-public-view="sharing">空闲机械</button>
+              </section>
+              <section>
+                <h3>内供流转</h3>
+                <button data-public-view="sharing">申请租赁</button><button data-public-view="sharing">出租中监控</button><button data-public-view="sharing">电子围栏预警</button><button data-public-view="sharing">演示数据</button>
               </section>
             </div>
           </div>
@@ -90,8 +104,9 @@
           <p>面向储备林建设、森林防火、机械化营造林装备采购的一站式服务平台</p>
           <div class="portal-actions">
             <button class="ghost-button" data-public-view="mall">进入内采商城</button>
-            <button class="ghost-button" data-public-view="equipment">查看机械设备库</button>
-            <button class="ghost-button" data-public-view="service">查找机械服务库</button>
+            <button class="ghost-button" data-public-view="equipment">查看机械设备</button>
+            <button class="ghost-button" data-public-view="service">查找机械服务</button>
+            <button class="ghost-button" data-public-view="sharing">打开共享地图</button>
           </div>
         </div>
         <div class="portal-search">
@@ -175,7 +190,7 @@
         <div class="module-top">
           <button class="mini-button" data-public-view="home">返回首页</button>
           <div>
-            <p class="eyebrow">机械设备库</p>
+            <p class="eyebrow">机械设备</p>
             <h1>储备林工程建设设备资源目录</h1>
             <p>每台设备单独展示购买和租赁选项，适配林地整理、采伐集材、运输和无人机作业。</p>
           </div>
@@ -196,7 +211,7 @@
         <div class="module-top">
           <button class="mini-button" data-public-view="home">返回首页</button>
           <div>
-            <p class="eyebrow">机械服务库</p>
+            <p class="eyebrow">机械服务</p>
             <h1>按小时、台班、亩数或项目计价的工程服务</h1>
             <p>服务不是普通商品，重点展示服务区域、设备人员配置、每小时工程价格和进场周期。</p>
           </div>
@@ -237,6 +252,18 @@
           <button class="primary-button" id="moduleRegisterButton">申请供应商入驻</button>
         </div>
         <div class="module-grid" id="supplierModuleList"></div>
+      </section>
+
+      <section class="public-view module-page sharing-page hidden" data-public-view="sharing" id="moduleSharing">
+        <div class="module-top">
+          <button class="mini-button" data-public-view="home">返回首页</button>
+          <div>
+            <p class="eyebrow">机械共享</p>
+            <h1>中林集团机械设备共享调度</h1>
+          </div>
+          <button class="primary-button" data-open-login="buyer">登录后申请租赁</button>
+        </div>
+        <div id="sharingPublicRoot"></div>
       </section>
     </section>
 
@@ -340,7 +367,7 @@
 
           <section class="view-panel hidden" id="equipmentView">
             <div class="section-head">
-              <h2>机械设备库</h2>
+              <h2>机械设备</h2>
               <span>储备林建设与林业作业设备，可购买、租赁或形成项目需求</span>
             </div>
             <div class="cards" id="equipmentCards"></div>
@@ -348,10 +375,21 @@
 
           <section class="view-panel hidden" id="serviceDeskView">
             <div class="section-head">
-              <h2>机械设备服务库</h2>
+              <h2>机械服务</h2>
               <span>按小时、台班、亩数或项目计价的工程服务</span>
             </div>
             <div class="cards" id="serviceDeskCards"></div>
+          </section>
+
+          <section class="view-panel hidden" id="sharingView">
+            <div class="section-head">
+              <div>
+                <h2>机械共享</h2>
+                <span>地图化查看集团内部机械资产，筛选空闲设备并发起内供租赁申请</span>
+              </div>
+              <button class="mini-button" data-sharing-reset>恢复演示数据</button>
+            </div>
+            <div id="sharingAppRoot"></div>
           </section>
 
           <section class="view-panel hidden" id="demandView">
@@ -533,6 +571,7 @@
       </form>
     </dialog>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
